@@ -52,6 +52,7 @@ function PerfTest() {
   this.updateStats = function() {
     console.log(self.perfData);
     var libTable = document.getElementById('libtable');
+    var body = document.getElementById('body');
     var tests = self.perfData['lib'];
 
     for (var i in tests) {
@@ -73,6 +74,33 @@ function PerfTest() {
       }
 
       libTable.appendChild(tr);
+    }
+
+    var h2;
+    var headers = [
+      'Name',
+      'No.',
+      'Min. time',
+      'Avg. time',
+      'Max. time',
+      'Cum. time'  
+    ];
+    for (i in self.perfData['contexts']) {
+      var ctx = self.perfData['contexts'][i];
+      h2 = document.createElement('h2');
+      h2.innerHTML = 'Context "' + i + '"';
+      body.appendChild(h2);
+
+      var table = document.createElement('table');
+      table.setAttribute('border', '1');
+      var tr = document.createElement('tr');
+      for (var j in headers) {
+        var th = document.createElement('th');
+        th.innerHTML = headers[j];
+        tr.appendChild(th);
+      } 
+      table.appendChild(tr);
+      body.appendChild(table);
     }
   }
 
