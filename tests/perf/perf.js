@@ -11,7 +11,53 @@ function PerfTest() {
 
   var self = this;
 
+  // this is an object for
+  // storing asynchronous timers
   this.timers = {};
+
+  this.registerTimer = function(id, test, callback) {
+    if (!this.timers[id]) {
+      this.timers[id] = {};
+    }
+    if (!this.timers[id][test]) {
+      this.timers[id][test] = {};
+    }
+    this.timers[id][test]['start'] = this.getTime();
+  }
+
+  this.setTimerCallback = function(id, test, callback) {
+    if (!this.timers[id]) {
+      this.timers[id] = {};
+    }
+    if (!this.timers[id][test]) {
+      this.timers[id][test] = {};
+    }
+    this.timers[id][test]['done'] = callback;
+  }
+
+  this.resolveTimer = function(id, test, time) {
+    if (!time) {
+      time = this.getTime() - this.timers[id][test]['start'];
+    }
+    if (this.timers[id][test]['done']) {
+      this.timers[id][test]['done'](time);
+    }
+    return time;
+  }
+
+  this.addDataPoint = function(ctxid, tname, elem, time) {
+    if (ctxid) {
+      this.ensureContext(ctxid);
+      var test = this.perfData['contexts'][ctxid][tname];
+    } else {
+      var test = this.perfData['lib'][tname];
+    }
+    if (elem) {
+      test[elem] = time;
+    } else {
+      test.push(time);
+    }
+  }
 
   this.getTime = function() {
     return window.performance.now();
@@ -198,7 +244,7 @@ function PerfTest() {
     var onLoad = function(e) { 
       if (!performanceTimer.files.length) {
         end = performanceTimer.getTime();
-        self.perfData['lib']['load'].push(end-start);
+        self.addDataPoint(null, 'load', null, end-start);
         callback();
       } else {
       var script = document.createElement('script');
