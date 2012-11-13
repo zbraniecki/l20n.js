@@ -1,6 +1,6 @@
 var performanceTimer;
 
-window.addEventListener('load', function() {
+function init() {
   var files = [
     '/l20n/js/lib/l20n.js',
     '/l20n/js/lib/events.js',
@@ -10,19 +10,23 @@ window.addEventListener('load', function() {
   
   performanceTimer = new PerfTest();
   performanceTimer.files = files;
-});
 
 
-function init() {
-  console.log('init')
-  var ctx = L20n.getContext('main');
-  ctx.addResource('a.lol');
-  ctx.addResource('https://raw.github.com/l20n/l20n.js/master/tests/html/client/attrs/index.lol');
-  ctx.freeze();
-  ctx.addEventListener('ready', function() {
-    performanceTimer.updateStats();
+  performanceTimer.start(function() {
+    console.log('init');
+    var start = performanceTimer.getTime();
+    var ctx = L20n.getContext('main');
+    ctx.addResource('a.lol');
+    ctx.addResource('b.lol');
+    ctx.freeze();
+    ctx.addEventListener('ready', function() {
+      console.log('ready');
+      var end = performanceTimer.getTime();
+      performanceTimer.perfData['lib']['ready'].push((end - start));
+      performanceTimer.updateStats();
+    });
+    console.log('end init')
   });
-  console.log('end init')
 }
 
 /* PerfTest */
@@ -32,14 +36,21 @@ function PerfTest() {
   this.perfData = {
     'lib': {
       'load': [],
+      'ready': [],
     },
     'contexts': {}
   };
 
   var self = this;
 
-  this.start = function() {
-    measureCodeLoading(init);
+  this.timers = {};
+
+  this.getTime = function() {
+    return window.performance.now();
+  }
+
+  this.start = function(callback) {
+    measureCodeLoading(callback);
   }
 
   function max(array){
@@ -58,11 +69,11 @@ function PerfTest() {
     var tr = document.createElement('tr');
     var tds = [];
     tds.push(name);
-    tds.push(test.length);
-    tds.push(min(test));
-    tds.push(sum(test)/test.length);
-    tds.push(max(test));
-    tds.push(sum(test));
+    tds.push(test.length.toFixed(2));
+    tds.push(min(test).toFixed(2));
+    tds.push((sum(test)/test.length).toFixed(2));
+    tds.push(max(test).toFixed(2));
+    tds.push(sum(test).toFixed(2));
 
     for(var j=0;j<tds.length;j++) {
       var td = document.createElement('td');
@@ -73,16 +84,9 @@ function PerfTest() {
   }
 
   this.updateStats = function() {
-    console.log(self.perfData);
-    var libTable = document.getElementById('libtable');
     var body = document.getElementById('body');
     var tests = self.perfData['lib'];
-
-    for (var i in tests) {
-      var test = tests[i];
-      var tr = drawTestRow(i, test);
-      libTable.appendChild(tr);
-    }
+    var cvs = document.createElement('div');
 
     var h2;
     var headers = [
@@ -93,11 +97,34 @@ function PerfTest() {
       'Max. time',
       'Cum. time'  
     ];
+    var lib = self.perfData['lib'];
+    h2 = document.createElement('h2');
+    h2.innerHTML = 'Library';
+    cvs.appendChild(h2);
+
+    var table = document.createElement('table');
+    table.setAttribute('border', '1');
+    var tr = document.createElement('tr');
+    for (var j in headers) {
+      var th = document.createElement('th');
+      th.innerHTML = headers[j];
+      tr.appendChild(th);
+    } 
+    table.appendChild(tr);
+    for (var j in lib) {
+      var test = lib[j];
+      if (test.length == 0) {
+        continue;
+      }
+      var tr = drawTestRow(j, test);
+      table.appendChild(tr);
+    }
+    cvs.appendChild(table);
     for (i in self.perfData['contexts']) {
       var ctx = self.perfData['contexts'][i];
       h2 = document.createElement('h2');
       h2.innerHTML = 'Context "' + i + '"';
-      body.appendChild(h2);
+      cvs.appendChild(h2);
 
       var table = document.createElement('table');
       table.setAttribute('border', '1');
@@ -108,21 +135,17 @@ function PerfTest() {
         tr.appendChild(th);
       } 
       table.appendChild(tr);
-      console.log(ctx);
       for (var j in ctx) {
-        if (j == 'timers') {
-          continue;
-        }
         var test = ctx[j];
         if (test.length == 0) {
           continue;
         }
-        console.log(test);
         var tr = drawTestRow(j, test);
         table.appendChild(tr);
       }
-      body.appendChild(table);
+      cvs.appendChild(table);
     }
+    document.body.appendChild(cvs);
   }
 
   /*
@@ -135,7 +158,7 @@ function PerfTest() {
 
     var onLoad = function(e) { 
       if (!performanceTimer.files.length) {
-        end = new Date();
+        end = performanceTimer.getTime();
         self.perfData['lib']['load'].push(end-start);
         callback();
       } else {
@@ -147,7 +170,7 @@ function PerfTest() {
       }
     }
 
-    start = new Date();
+    start = performanceTimer.getTime();
     onLoad();
   }
 
