@@ -23,7 +23,11 @@ function init() {
       console.log('ready');
       var end = performanceTimer.getTime();
       performanceTimer.perfData['lib']['ready'].push((end - start));
-      performanceTimer.updateStats();
+
+      var a = ctx.get('a');
+      var b = ctx.get('b');
+      var c = ctx.get('c');
+      performanceTimer.showStats();
     });
     console.log('end init')
   });
@@ -37,6 +41,7 @@ function PerfTest() {
     'lib': {
       'load': [],
       'ready': [],
+      'pages': {},
     },
     'contexts': {}
   };
@@ -65,29 +70,82 @@ function PerfTest() {
     return array.reduce(function(a,b){return a+b;});
   }
 
-  function drawTestRow(name, test) {
+  function drawTestRow(table, name, test, subrow) {
     var tr = document.createElement('tr');
     var tds = [];
-    tds.push(name);
-    tds.push(test.length.toFixed(2));
-    tds.push(min(test).toFixed(2));
-    tds.push((sum(test)/test.length).toFixed(2));
-    tds.push(max(test).toFixed(2));
-    tds.push(sum(test).toFixed(2));
+    var i;
 
-    for(var j=0;j<tds.length;j++) {
+    if (Array.isArray(test)) {
+      var values = test;
+    } else {
+      var values = [];
+      for (i in test) {
+        values.push(test[i]);
+      }
+    }
+    if (values.length == 0) {
+      return;
+    }
+    tds.push(name);
+    tds.push(values.length.toFixed(2));
+    if (values.length > 1) {
+      tds.push(min(values).toFixed(2));
+      tds.push((sum(values)/values.length).toFixed(2));
+      tds.push(max(values).toFixed(2));
+    } else {
+      tds.push('&nbsp;');
+      tds.push('&nbsp;');
+      tds.push('&nbsp;');
+    }
+    tds.push(sum(values).toFixed(2));
+
+    for (var j=0;j<tds.length;j++) {
       var td = document.createElement('td');
       td.innerHTML = tds[j];
       tr.appendChild(td);
     }
-    return tr;
+    if (!subrow && !Array.isArray(test)) {
+      tr.setAttribute('expanded', 'false');
+      tr.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (tr.getAttribute('expanded') == 'false') {
+          var ns = tr.nextElementSibling;
+          for (var j=0;j<values.length;j++) {
+            ns.style.display = 'table-row';
+            ns = ns.nextElementSibling;
+          }
+          tr.setAttribute('expanded', 'true');
+        } else {
+          var ns = tr.nextElementSibling;
+          for (var j=0;j<values.length;j++) {
+            ns.style.display = 'none';
+            ns = ns.nextElementSibling;
+          }
+          tr.setAttribute('expanded', 'false');
+        }
+      });
+    }
+    if (subrow) {
+      tr.style.display = 'none';
+    }
+    table.appendChild(tr);
+
+    if (!Array.isArray(test)) {
+      for (i in test) {
+        drawTestRow(table, i, [test[i]], true);
+      }
+    }
   }
 
-  this.updateStats = function() {
+  this.showStats = function() {
     var body = document.getElementById('body');
     var tests = self.perfData['lib'];
     var cvs = document.createElement('div');
-
+    cvs.setAttribute('style', 'z-index:100;position:absolute;top:0;left:0;background-color:#eee;border: 1px solid #333');
+    cvs.addEventListener('click', function() {
+      document.body.removeChild(cvs);
+    });
     var h2;
     var headers = [
       'Name',
@@ -104,6 +162,10 @@ function PerfTest() {
 
     var table = document.createElement('table');
     table.setAttribute('border', '1');
+    table.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+    });
     var tr = document.createElement('tr');
     for (var j in headers) {
       var th = document.createElement('th');
@@ -116,11 +178,10 @@ function PerfTest() {
       if (test.length == 0) {
         continue;
       }
-      var tr = drawTestRow(j, test);
-      table.appendChild(tr);
+      drawTestRow(table, j, test);
     }
     cvs.appendChild(table);
-    for (i in self.perfData['contexts']) {
+    for (var i in self.perfData['contexts']) {
       var ctx = self.perfData['contexts'][i];
       h2 = document.createElement('h2');
       h2.innerHTML = 'Context "' + i + '"';
@@ -128,6 +189,10 @@ function PerfTest() {
 
       var table = document.createElement('table');
       table.setAttribute('border', '1');
+      table.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+      });
       var tr = document.createElement('tr');
       for (var j in headers) {
         var th = document.createElement('th');
@@ -140,12 +205,23 @@ function PerfTest() {
         if (test.length == 0) {
           continue;
         }
-        var tr = drawTestRow(j, test);
-        table.appendChild(tr);
+        drawTestRow(table, j, test);
       }
       cvs.appendChild(table);
     }
     document.body.appendChild(cvs);
+  }
+
+  this.ensureContext = function(id) {
+    if(!this.perfData.contexts[id]) {
+      this.perfData.contexts[id] = {
+        'bootstrap': [],
+        'resloading': {},
+        'parsing': {},
+        'compilation': [],
+        'execution': {}
+      }; 
+    }
   }
 
   /*
