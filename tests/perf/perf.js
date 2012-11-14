@@ -5,6 +5,7 @@ function PerfTest() {
       'load': [],
       'ready': [],
       'pages': {},
+      'localized': [],
     },
     'contexts': {}
   };
