@@ -22,7 +22,7 @@ function init() {
     ctx.addEventListener('ready', function() {
       console.log('ready');
       var end = performanceTimer.getTime();
-      performanceTimer.addDataPoint(null, 'ready', null, end-start);
+      performanceTimer.addDataPoint(null, 'ready', null, start, end);
 
       var a = ctx.get('a');
       var b = ctx.get('b');
