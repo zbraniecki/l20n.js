@@ -16,6 +16,9 @@ function PerfTest() {
   this.timers = {};
 
   this.registerTimer = function(id, test, callback) {
+    if (!id) {
+      id = 'lib';
+    }
     if (!this.timers[id]) {
       this.timers[id] = {};
     }
@@ -35,17 +38,26 @@ function PerfTest() {
     this.timers[id][test]['done'] = callback;
   }
 
-  this.resolveTimer = function(id, test, time) {
-    if (!time) {
-      time = this.getTime() - this.timers[id][test]['start'];
+  this.resolveTimer = function(id, test, start, end) {
+    if (!id) {
+      id = 'lib';
+    }
+    if (!start) {
+      start = this.timers[id][test]['start'];
+    }
+    if (!end) {
+      end = this.getTime();
     }
     if (this.timers[id][test]['done']) {
-      this.timers[id][test]['done'](time);
+      this.timers[id][test]['done'](start, end);
     }
-    return time;
+    return [start, end];
   }
 
-  this.addDataPoint = function(ctxid, tname, elem, time) {
+  this.addDataPoint = function(ctxid, tname, elem, start, end) {
+    if (!end) {
+      end = this.getTime();
+    }
     if (ctxid) {
       this.ensureContext(ctxid);
       var test = this.perfData['contexts'][ctxid][tname];
@@ -53,9 +65,9 @@ function PerfTest() {
       var test = this.perfData['lib'][tname];
     }
     if (elem) {
-      test[elem] = time;
+      test[elem] = [start, end];
     } else {
-      test.push(time);
+      test.push([start, end]);
     }
   }
 
@@ -83,14 +95,10 @@ function PerfTest() {
     var tr = document.createElement('tr');
     var tds = [];
     var i;
+    var values = [];
 
-    if (Array.isArray(test)) {
-      var values = test;
-    } else {
-      var values = [];
-      for (i in test) {
-        values.push(test[i]);
-      }
+    for (i in test) {
+      values.push(test[i][1] - test[i][0]);
     }
     if (values.length == 0) {
       return;
@@ -243,8 +251,7 @@ function PerfTest() {
 
     var onLoad = function(e) { 
       if (!performanceTimer.files.length) {
-        end = performanceTimer.getTime();
-        self.addDataPoint(null, 'load', null, end-start);
+        self.addDataPoint(null, 'load', null, start);
         callback();
       } else {
       var script = document.createElement('script');
