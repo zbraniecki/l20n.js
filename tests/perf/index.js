@@ -7,11 +7,13 @@ function init() {
     '/l20n/js/lib/parser.js',
     '/l20n/js/lib/compiler.js',
   ];
-  
   performanceTimer = new PerfTest();
   performanceTimer.files = files;
+  performanceTimer.addHook();
+  init2();
+}
 
-
+function init2() {
   performanceTimer.start(function() {
     console.log('init');
     var start = performanceTimer.getTime();
