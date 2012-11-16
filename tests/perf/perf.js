@@ -92,6 +92,17 @@ function PerfTest() {
     return array.reduce(function(a,b){return a+b;});
   }
 
+  this.addHook = function() {
+    var body = document.body;
+    var button = document.createElement('button');
+    button.addEventListener('click', self.showStats);
+    button.innerHTML = "click me";
+    button.style.position = "fixed";
+    button.style.bottom = 0;
+    button.style.right = 0;
+    body.appendChild(button);
+  }
+
   function drawTestRow(table, name, test, subrow) {
     var tr = document.createElement('tr');
     var tds = [];
