@@ -1,11 +1,11 @@
 (function(){
-  var ctx = L20n.getContext();
+  var ctx = L20n.getContext('main');
   HTMLDocument.prototype.__defineGetter__('l10nCtx', function() {
     return ctx;
   });
 })();
 
-document.addEventListener("DOMContentLoaded", function() {
+function translateDocument() {
   var headNode = document.getElementsByTagName('head')[0];
 
   if (!headNode)
@@ -29,6 +29,10 @@ document.addEventListener("DOMContentLoaded", function() {
   }
 
   initializeDocumentContext();
+}
+
+document.addEventListener("DOMContentLoaded2", function() {
+  translateDocument();
 });
 
 function download(uri, callback) {
@@ -62,8 +66,9 @@ function initializeDocumentContext() {
 
   var links = headNode.getElementsByTagName('link')
   for (var i = 0; i < links.length; i++) {
-    if (links[i].getAttribute('type') == 'intl/l20n')
+    if (links[i].getAttribute('type') == 'intl/l20n') {
       ctx.addResource(links[i].getAttribute('href'))
+    }
   }
 
   ctx.freeze();
@@ -81,7 +86,7 @@ function initializeDocumentContext() {
     event.initEvent('LocalizationReady', false, false);
     document.dispatchEvent(event);
 
-    var nodes = document.querySelectorAll('[l10n-id]');
+    var nodes = document.querySelectorAll('[data-l10n-id]');
     for (var i = 0, node; node = nodes[i]; i++) {
       localizeNode(ctx, node);
     }
@@ -97,7 +102,7 @@ function initializeDocumentContext() {
   });
 
   HTMLElement.prototype.retranslate = function() {
-    if (this.hasAttribute('l10n-id')) {
+    if (this.hasAttribute('data-l10n-id')) {
       localizeNode(ctx, this);
       return;
     }
@@ -129,7 +134,7 @@ function getPathTo(element, context, ignoreL10nPath) {
   if (id)
     return '*[@id="' + id + '"]';
 
-  var l10nPath = !ignoreL10nPath && element.getAttribute('l10n-path');
+  var l10nPath = !ignoreL10nPath && element.getAttribute('data-l10n-path');
   if (l10nPath)
     return l10nPath;
 
@@ -154,14 +159,14 @@ function getElementByPath(path, context) {
 }
 
 function localizeNode(ctx, node) {
-  var l10nId = node.getAttribute('l10n-id');
+  var l10nId = node.getAttribute('data-l10n-id');
   var args;
 
   // node.nodeData must not be exposed
   if (node.nodeData) {
     args = node.nodeData;
-  } else if (node.hasAttribute('l10n-args')) {
-    args = JSON.parse(node.getAttribute('l10n-args'));
+  } else if (node.hasAttribute('data-l10n-args')) {
+    args = JSON.parse(node.getAttribute('data-l10n-args'));
     node.nodeData = args;
   }
   // get attributes from the LO
@@ -172,8 +177,8 @@ function localizeNode(ctx, node) {
     return false;
   }
   var l10nAttrs;
-  if (node.hasAttribute('l10n-attrs'))
-    l10nAttrs = node.getAttribute('l10n-attrs').split(" ");
+  if (node.hasAttribute('data-l10n-attrs'))
+    l10nAttrs = node.getAttribute('data-l10n-attrs').split(" ");
   else
     l10nAttrs = null;
   if (attrs) {
@@ -190,9 +195,9 @@ function localizeNode(ctx, node) {
   // in the DOM, thus making it impossible for a malevolent XPath expression to 
   // step outside of it.
   var origNode = node.cloneNode(true);
-  var origL10nStatus = origNode.getAttribute('l10n-status');
+  var origL10nStatus = origNode.getAttribute('data-l10n-status');
   node.innerHTML = valueFromCtx;
-  node.setAttribute('l10n-status', 'translated');
+  node.setAttribute('data-l10n-status', 'translated');
 
   // overlay the attributes of descendant nodes
   var children = node.getElementsByTagName('*');
