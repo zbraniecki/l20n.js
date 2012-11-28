@@ -32,8 +32,13 @@ function PerfTest() {
 
   this.addPerformanceAPINumbers = function() {
     for (var i in performance.timing) {
-      this.perfData['lib']['performance.*'][i] = performance.timing[i];
+      if (performance.timing[i] === 0) {
+        this.perfData['lib']['performance.*'][i] = [0, 0];
+      } else {
+        this.perfData['lib']['performance.*'][i] = [performance.timing.navigationStart, performance.timing[i]];
+      }
     }
+    console.log(this.perfData);
   }
 
   this.setTimerCallback = function(id, test, callback) {
@@ -122,9 +127,12 @@ function PerfTest() {
     if (values.length == 0) {
       return;
     }
+    if (subrow) {
+      name = '&nbsp;&nbsp;&nbsp;&nbsp;'+name;
+    }
     tds.push(name);
     tds.push(values.length.toFixed(2));
-    if (values.length > 1) {
+    if (values.length > 1 && name !== 'performance.*') {
       tds.push(min(values).toFixed(2));
       tds.push((sum(values)/values.length).toFixed(2));
       tds.push(max(values).toFixed(2));
@@ -133,7 +141,11 @@ function PerfTest() {
       tds.push('&nbsp;');
       tds.push('&nbsp;');
     }
-    tds.push(sum(values).toFixed(2));
+    if (name == 'performance.*') {
+      tds.push(max(values).toFixed(2));
+    } else {
+      tds.push(sum(values).toFixed(2));
+    }
 
     for (var j=0;j<tds.length;j++) {
       var td = document.createElement('td');

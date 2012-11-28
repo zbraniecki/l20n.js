@@ -19,8 +19,8 @@ function init2() {
     console.log('init');
     var start = performanceTimer.getTime();
     var ctx = L20n.getContext('main');
-    ctx.addResource('a.lol');
-    ctx.addResource('b.lol');
+    ctx.addResource('locales/a.lol');
+    ctx.addResource('locales/settings.en-US.lol');
     ctx.freeze();
     ctx.addEventListener('ready', function() {
       console.log('ready');
@@ -28,9 +28,7 @@ function init2() {
       performanceTimer.addDataPoint(null, 'ready', null, start, end);
 
       var a = ctx.get('a');
-      var b = ctx.get('b');
-      var c = ctx.get('c');
-      performanceTimer.showStats();
+      var b = ctx.get('newpinTitle');
     });
     console.log('end init')
   });
