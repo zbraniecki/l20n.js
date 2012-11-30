@@ -1,10 +1,16 @@
+(function() {
+  'use strict';
+
+  this.PerfTest = PerfTest;
+  this.init = init;
 
 function PerfTest() {
+  this.files = [];
   this.perfData = {
-    'lib': {
+    'doc': {
       'performance.*': {},
       'load': [],
-      'ready': [],
+      'l10n bootstrap': [],
       'pages': {},
       'localized': [],
     },
@@ -19,7 +25,7 @@ function PerfTest() {
 
   this.registerTimer = function(id, test, callback) {
     if (!id) {
-      id = 'lib';
+      id = 'doc';
     }
     if (!this.timers[id]) {
       this.timers[id] = {};
@@ -33,12 +39,11 @@ function PerfTest() {
   this.addPerformanceAPINumbers = function() {
     for (var i in performance.timing) {
       if (performance.timing[i] === 0) {
-        this.perfData['lib']['performance.*'][i] = [0, 0];
+        this.perfData['doc']['performance.*'][i] = [0, 0];
       } else {
-        this.perfData['lib']['performance.*'][i] = [performance.timing.navigationStart, performance.timing[i]];
+        this.perfData['doc']['performance.*'][i] = [performance.timing.navigationStart, performance.timing[i]];
       }
     }
-    console.log(this.perfData);
   }
 
   this.setTimerCallback = function(id, test, callback) {
@@ -53,7 +58,7 @@ function PerfTest() {
 
   this.resolveTimer = function(id, test, start, end) {
     if (!id) {
-      id = 'lib';
+      id = 'doc';
     }
     if (!start) {
       start = this.timers[id][test]['start'];
@@ -75,7 +80,7 @@ function PerfTest() {
       this.ensureContext(ctxid);
       var test = this.perfData['contexts'][ctxid][tname];
     } else {
-      var test = this.perfData['lib'][tname];
+      var test = this.perfData['doc'][tname];
     }
     if (elem) {
       test[elem] = [start, end];
@@ -89,7 +94,11 @@ function PerfTest() {
   }
 
   this.start = function(callback) {
-    measureCodeLoading(callback);
+    if (window.performanceTimer.files.length) {
+      measureCodeLoading(callback);
+    } else {
+      callback();
+    }
   }
 
   function max(array){
@@ -203,9 +212,10 @@ function PerfTest() {
       'Max. time',
       'Cum. time'  
     ];
-    var lib = self.perfData['lib'];
+    /* Document */
+    var doc = self.perfData['doc'];
     h2 = document.createElement('h2');
-    h2.innerHTML = 'Library';
+    h2.innerHTML = 'Document';
     cvs.appendChild(h2);
 
     var table = document.createElement('table');
@@ -221,14 +231,16 @@ function PerfTest() {
       tr.appendChild(th);
     } 
     table.appendChild(tr);
-    for (var j in lib) {
-      var test = lib[j];
+    for (var j in doc) {
+      var test = doc[j];
       if (test.length == 0) {
         continue;
       }
       drawTestRow(table, j, test);
     }
     cvs.appendChild(table);
+
+    /* Contexts */
     for (var i in self.perfData['contexts']) {
       var ctx = self.perfData['contexts'][i];
       h2 = document.createElement('h2');
@@ -297,3 +309,33 @@ function PerfTest() {
     onLoad();
   }
 }
+
+function showGraph(){
+  if(!window.__profiler || window.__profiler.scriptLoaded!==true){var d=document,h=d.getElementsByTagName("head")[0],s=d.createElement("script"),l=d.createElement("div"),c=function(){if(l){d.body.removeChild(l)}},t=new Date();s.type="text/javascript";l.style.cssText="z-index:999;position:fixed;top:10px;left:10px;display:inline;width:auto;font-size:14px;line-height:1.5em;font-family:Helvetica,Calibri,Arial,sans-serif;text-shadow:none;padding:3px 10px 0;background:#FFFDF2;box-shadow:0 0 0 3px rgba(0,0,0,.25),0 0 5px 5px rgba(0,0,0,.25); border-radius:1px";l.innerHTML="Just a moment";s.src="./js/graph.js?"+t.getTime();s.onload=c;s.onreadystatechange=function(){if(this.readyState=="loaded"){c()}};d.body.appendChild(l);h.appendChild(s);} else if(typeof window.__profiler === "function") {window.__profiler();}};
+
+var performanceTimer;
+window.performanceTimer = performanceTimer;
+
+function init() {
+  window.performanceTimer = new PerfTest();
+  window.performanceTimer.addPerformanceAPINumbers();
+  window.performanceTimer.addHook();
+  init2();
+}
+
+function init2() {
+  window.performanceTimer.start(function() {
+    var start = window.performanceTimer.getTime();
+    var ctx = L20n.getContext('main');
+    ctx.addResource('locales/settings.en-US.lol');
+    ctx.freeze();
+    ctx.addEventListener('ready', function() {
+      var end = window.performanceTimer.getTime();
+      window.performanceTimer.addDataPoint(null, 'l10n bootstrap', null, start, end);
+
+      var b = ctx.get('newpinTitle');
+    });
+  });
+}
+
+}).call(this);
