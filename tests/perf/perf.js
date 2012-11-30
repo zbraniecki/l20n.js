@@ -218,6 +218,16 @@ function PerfTest() {
     h2.innerHTML = 'Document';
     cvs.appendChild(h2);
 
+    var button = document.createElement('button');
+    button.innerHTML = 'Show graph';
+    button.addEventListener('click', function(e) {
+      showGraph();
+      e.preventDefault();
+      e.stopPropagation();
+      return false;
+    });
+    cvs.appendChild(button);
+
     var table = document.createElement('table');
     table.setAttribute('border', '1');
     table.addEventListener('click', function(e) {
