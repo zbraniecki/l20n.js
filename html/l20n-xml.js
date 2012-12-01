@@ -4,7 +4,7 @@
     return ctx;
   });
 })();
-
+this.translateDocument = translateDocument;
 function translateDocument() {
   var headNode = document.getElementsByTagName('head')[0];
 
@@ -63,24 +63,6 @@ function initializeDocumentContext() {
       }
     }
   }
-
-  var links = headNode.getElementsByTagName('link')
-  for (var i = 0; i < links.length; i++) {
-    if (links[i].getAttribute('type') == 'intl/l20n') {
-      ctx.addResource(links[i].getAttribute('href'))
-    }
-  }
-
-  ctx.freeze();
-
-  var scriptNodes = headNode.getElementsByTagName('script')
-  for (var i=0;i<scriptNodes.length;i++) {
-    if (scriptNodes[i].getAttribute('type')=='application/l20n') {
-      var contextData = JSON.parse(scriptNodes[i].textContent);
-      ctx.data = contextData;
-    }
-  }
-  
   ctx.addEventListener('ready', function() {
     var event = document.createEvent('Event');
     event.initEvent('LocalizationReady', false, false);
@@ -92,6 +74,24 @@ function initializeDocumentContext() {
     }
     fireLocalizedEvent();
   });
+  /*
+  var links = headNode.getElementsByTagName('link')
+  for (var i = 0; i < links.length; i++) {
+    if (links[i].getAttribute('type') == 'intl/l20n') {
+      ctx.addResource(links[i].getAttribute('href'))
+    }
+  }*/
+  ctx.addResourceSource(lol);
+  ctx.freeze();
+
+  var scriptNodes = headNode.getElementsByTagName('script')
+  for (var i=0;i<scriptNodes.length;i++) {
+    if (scriptNodes[i].getAttribute('type')=='application/l20n') {
+      var contextData = JSON.parse(scriptNodes[i].textContent);
+      ctx.data = contextData;
+    }
+  }
+  
 
   ctx.addEventListener('error', function(e) {
     if (e.code & L20n.NOVALIDLOCALE_ERROR) {
