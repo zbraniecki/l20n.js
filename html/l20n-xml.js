@@ -63,6 +63,12 @@ function initializeDocumentContext() {
       }
     }
   }
+  var links = headNode.getElementsByTagName('link')
+  for (var i = 0; i < links.length; i++) {
+    if (links[i].getAttribute('type') == 'intl/l20n') {
+      ctx.addResource(links[i].getAttribute('href'))
+    }
+  }
   ctx.addEventListener('ready', function() {
     var event = document.createEvent('Event');
     event.initEvent('LocalizationReady', false, false);
@@ -74,14 +80,6 @@ function initializeDocumentContext() {
     }
     fireLocalizedEvent();
   });
-  /*
-  var links = headNode.getElementsByTagName('link')
-  for (var i = 0; i < links.length; i++) {
-    if (links[i].getAttribute('type') == 'intl/l20n') {
-      ctx.addResource(links[i].getAttribute('href'))
-    }
-  }*/
-  ctx.addResourceSource(lol);
   ctx.freeze();
 
   var scriptNodes = headNode.getElementsByTagName('script')
