@@ -31,7 +31,7 @@ function translateDocument() {
   initializeDocumentContext();
 }
 
-document.addEventListener("DOMContentLoaded2", function() {
+document.addEventListener("DOMContentLoaded", function() {
   translateDocument();
 });
 
@@ -72,11 +72,14 @@ function initializeDocumentContext() {
   ctx.addEventListener('ready', function() {
     var event = document.createEvent('Event');
     event.initEvent('LocalizationReady', false, false);
+    window.performanceTimer.addDataPoint(null, 'l10n ctx ready', null, 0);
     document.dispatchEvent(event);
 
     var nodes = document.querySelectorAll('[data-l10n-id]');
     for (var i = 0, node; node = nodes[i]; i++) {
+      var stTime = window.performanceTimer.getTime();
       localizeNode(ctx, node);
+      window.performanceTimer.addDataPoint(null, 'node l10n', node.getAttribute('data-l10n-id'), stTime);
     }
     fireLocalizedEvent();
   });
@@ -119,6 +122,7 @@ function initializeDocumentContext() {
 function fireLocalizedEvent() {
   var event = document.createEvent('Event');
   event.initEvent('DocumentLocalized', false, false);
+  window.performanceTimer.addDataPoint(null, 'DocumentLocalized', null, 0);
   document.dispatchEvent(event);
 }
 
