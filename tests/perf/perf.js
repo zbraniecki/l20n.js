@@ -69,6 +69,7 @@ function PerfTest() {
     if (!end) {
       end = this.getTime();
     }
+
     if (this.timers[id][test]['done']) {
       this.timers[id][test]['done'](start, end);
     }
@@ -120,11 +121,15 @@ function PerfTest() {
     var body = document.body;
     var button = document.createElement('button');
     button.addEventListener('click', self.showStats);
-    button.innerHTML = "click me";
+    button.innerHTML = "Startup timing";
     button.style.position = "fixed";
-    button.style.bottom = 0;
-    button.style.right = 0;
+    button.style.top = "10px";
+    button.style.right = "10px";
     button.style.width = "100px";
+    button.style.backgroundColor = "#ccc";
+    button.style.fontSize = "14px";
+    button.style.lineHeight = "22px";
+    button.style.zIndex = 100;
     body.appendChild(button);
   }
 
