@@ -147,6 +147,27 @@ emit a `ready` event.
 
 
 ### ctx.addEventListener(String, Function)
+
+Register the specified listener on Context it's called on.
+
+First argument is an event type to listen for.
+
+Currently available are:
+`ready` - fired when Context resources are available and it is ready to use.
+
+This event is also fired after each change to locale order (retranslation).
+
+`error` - fired when Context encounters an error like:
+ - entity could not be retrieved
+ - entity could not be found
+ - entity value could not be computed
+
+`debug` - exposes access to internal errors from parser and compiler
+
+### ctx.removeEventListener(String, Function)
+
+Remove the event listener previously registered with addEventListener.
+
 ### ctx.removeEventListener(String, Function)
 ### ctx.get(String, Object)
 ### ctx.getEntity(String, Object)
