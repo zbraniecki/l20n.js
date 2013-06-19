@@ -202,6 +202,19 @@ Returns an object with the following keys:
    on the given entity
 
 ### ctx.localize(Array&lt;String&gt;, Function)
+
+Registeres a callback on the function passed as second argument.
+
+The callback binds the limited number of entities listed as an array
+of ids provided as the first argument to the callback function.
+
+It creates a wrapper around any running code that operates on the entities. The 
+wrapper ensures that entities are available (asynchronously) and it gets fired 
+whenever the value of the strings for the entities changes.
+
+This is the most common scenario and `localize` should be used for all running 
+code that operates on l10n code and user interface.
+
 ### ctx.ready(Function)
 
 Fires the function passed as argument as soon as the context is available.
@@ -210,7 +223,7 @@ If the context is available when the function is called, it fires the callback
 instantly. 
 Otherwise it sets the event listener and fire as soon as the context is ready.
 
-After that, each time locale list is modied (retranslation case) the callback 
+After that, each time locale list is modified (retranslation case) the callback 
 will be executed.
 
 The HTML Bindings
