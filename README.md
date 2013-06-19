@@ -204,6 +204,14 @@ Returns an object with the following keys:
 ### ctx.localize(Array&lt;String&gt;, Function)
 ### ctx.ready(Function)
 
+Fires the function passed as argument as soon as the context is available.
+
+If the context is available when the function is called, it fires the callback
+instantly. 
+Otherwise it sets the event listener and fire as soon as the context is ready.
+
+After that, each time locale list is modied (retranslation case) the callback 
+will be executed.
 
 The HTML Bindings
 -----------------
