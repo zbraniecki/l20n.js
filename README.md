@@ -153,6 +153,7 @@ Register the specified listener on Context it's called on.
 First argument is an event type to listen for.
 
 Currently available are:
+
 `ready` - fired when Context resources are available and it is ready to use.
 
 This event is also fired after each change to locale order (retranslation).
@@ -164,13 +165,42 @@ This event is also fired after each change to locale order (retranslation).
 
 `debug` - exposes access to internal errors from parser and compiler
 
+Second argument is a callback function which receives an EntityError object
+as an argument.
+
 ### ctx.removeEventListener(String, Function)
 
 Remove the event listener previously registered with addEventListener.
 
-### ctx.removeEventListener(String, Function)
 ### ctx.get(String, Object)
+
+Retrieve a string value evaluated from the Context.
+
+First argument is an ID of the entity to evaluate.
+
+Second argument is a simple hash object with a list of variables that
+extend context data available for this evaluation of this entity.
+
+Returns a string.
+
 ### ctx.getEntity(String, Object)
+
+Retrieve an object with data evaluated from an entity.
+
+First argument is an ID of the entity to evaluate.
+
+Second argument is a simple hash object with a list of variables that
+extend context data available for this evaluation of this entity.
+
+Returns an object with the following keys:
+
+ - `value`: a string value of the entity
+ - `attributes`: an object of evaluated attributes of the entity
+ - `globals`: a list of global variables used by the entity
+ - `locale`: locale code of the returned entity
+   The returned locale code may be different if fallback locale has been used
+   on the given entity
+
 ### ctx.localize(Array&lt;String&gt;, Function)
 ### ctx.ready(Function)
 
