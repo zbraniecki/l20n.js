@@ -157,12 +157,6 @@
 <bt_status_nopaired  " No devices paired">
 <bt_status_turnoff   " Turned off">
 <bt_status_paired  " {[ plural(n) ]}">
-<bt_status_paired[zero]   " {{name}}">
-<bt_status_paired[one]    " {{name}}, +{{n}} more">
-<bt_status_paired[two]    " {{name}}, +{{n}} more">
-<bt_status_paired[few]    " {{name}}, +{{n}} more">
-<bt_status_paired[many]   " {{name}}, +{{n}} more">
-<bt_status_paired[other]  " {{name}}, +{{n}} more">
 <device_status_tap_connect  " Tap to connect">
 <device_status_pairing      " Pairing with device…">
 <device_status_waiting      " Waiting for other device…">
@@ -338,35 +332,18 @@
 <newpinTitle "New PIN">
 <pinErrorMsg "The PIN was incorrect.">
 <inputCodeRetriesLeft "{[ plural(n) ]}">
-<inputCodeRetriesLeft[one] "last try.">
-<inputCodeRetriesLeft[two] "{{n}} tries left.">
-<inputCodeRetriesLeft[few] "{{n}} tries left.">
-<inputCodeRetriesLeft[many] "{{n}} tries left.">
-<inputCodeRetriesLeft[other] "{{n}} tries left.">
 <pinAttemptMsg3 "{[ plural(n) ]}">
-<pinAttemptMsg3[one] "You have one try left to enter the correct code before locking the SIM card.">
-<pinAttemptMsg3[two] "You have {{n}} tries left to enter the correct code before locking the SIM card.">
-<pinAttemptMsg3[few] "You have {{n}} tries left to enter the correct code before locking the SIM card.">
-<pinAttemptMsg3[many] "You have {{n}} tries left to enter the correct code before locking the SIM card.">
-<pinAttemptMsg3[other] "You have {{n}} tries left to enter the correct code before locking the SIM card.">
 <pinLastChanceMsg "This is your last chance to enter the correct PIN. Otherwise, you must enter the PUK code to use this SIM card.">
 <simCardLockedMsg "The SIM card is locked.">
 <enterPukMsg "You must enter the Personal Unlocking Key (PUK) code for the SIM card. Refer to your SIM card documentation or contact your carrier for more information.">
 <pukErrorMsg "The PUK code is incorrect.">
 <pukAttemptMsg3 "{[ plural(n) ]}">
-<pukAttemptMsg3[one] "You have one try left to enter the correct code before this SIM card will be permanently unusable. Refer to your SIM card documentation or contact your carrier for more information.">
-<pukAttemptMsg3[two] "You have {{n}} tries left to enter the correct code before this SIM card will be permanently unusable. Refer to your SIM card documentation or contact your carrier for more information.">
-<pukAttemptMsg3[few] "You have {{n}} tries left to enter the correct code before this SIM card will be permanently unusable. Refer to your SIM card documentation or contact your carrier for more information.">
-<pukAttemptMsg3[many] "You have {{n}} tries left to enter the correct code before this SIM card will be permanently unusable. Refer to your SIM card documentation or contact your carrier for more information.">
-<pukAttemptMsg3[other] "You have {{n}} tries left to enter the correct code before this SIM card will be permanently unusable. Refer to your SIM card documentation or contact your carrier for more information.">
-<pukLastChanceMsg "Last chance to enter the correct PUK code. Your SIM card will be permanently unusable if you enter in the wrong PUK code. Refer to your SIM card documentation or contact your carrier for more information.">
 <newSimPinMsg "Create PIN (must contain 4 to 8 digits)">
 <confirmNewSimPinMsg "Confirm new PIN">
 <newPinErrorMsg "PINs don’t match">
 <simLockedPhone "SIM-locked phone">
 <unknownSimCardState "Unknown SIM card state">
 <simCardNotReady " SIM card not ready">
-/*  Security :: Do Not Track */
 <doNotTrack "Do Not Track">
 <doNotTrack_dt "How does Do Not Track work?">
 <doNotTrack_dd1 "When you turn on Do Not Track, your device tells every website and app (as well as advertisers and other content providers) that you don’t want your behavior tracked.">
@@ -384,12 +361,6 @@
 <byteUnit_TB  " TB">
 <storageSize  " {{size}} {{unit}}">
 <availableSize  " {[ plural(size) ]}">
-<availableSize[zero]   " {{size}} {{unit}} available">
-<availableSize[one]    " {{size}} {{unit}} available">
-<availableSize[two]    " {{size}} {{unit}} available">
-<availableSize[few]    " {{size}} {{unit}} available">
-<availableSize[many]   " {{size}} {{unit}} available">
-<availableSize[other]  " {{size}} {{unit}} available">
 <apps_total_space "Total space">
 <apps_used_space "Used">
 <apps_free_space "Left">
