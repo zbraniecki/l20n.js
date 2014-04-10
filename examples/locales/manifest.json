@@ -1,5 +1,5 @@
 {
   "resources": [
-    "./{{locale}}/strings.l20n"
+    "./strings.{{locale}}.l20n"
   ]
 }

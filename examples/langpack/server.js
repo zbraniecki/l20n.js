@@ -1,6 +1,7 @@
 var fs = require('fs');
 var path = require('path');
 var express = require('express');
+var bodyParser = require('body-parser');
 
 var redis = require('redis');
 var client = redis.createClient();
@@ -13,7 +14,7 @@ var languageNames = {
 
 var app = express();
 app.use(allowCrossDomain);
-app.use(express.bodyParser());
+app.use(bodyParser());
 app.set('views', __dirname);       
 app.engine('html', require('ejs').renderFile);
 

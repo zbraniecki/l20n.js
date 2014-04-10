@@ -15,6 +15,9 @@
     <label>
       <input type="checkbox" id="pl"> Polski<br>
     </label>
+    <label>
+      <input type="checkbox" id="en-US"> American English<br>
+    </label>
     
     <script>
       var url = '/set';
@@ -26,7 +29,7 @@
 
       function send(ev) {
         var body = {
-          origin: 'settings.gaiamobile.org',
+          origin: 'localhost',
           locale: ev.target.getAttribute('id'),
           enable: ev.target.checked
         }

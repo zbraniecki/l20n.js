@@ -1,5 +1,5 @@
 function LPS() {
-  this.serverURL = 'http://langpack.informationisart.com';
+  this.serverURL = 'http://localhost:3000';
 
   this.apps = {};             // data from apps
   this.service = {};          // data from AMO
