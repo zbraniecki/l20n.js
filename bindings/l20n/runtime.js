@@ -2,7 +2,7 @@
 
 /* global Entity, Locale, Context, L10nError */
 /* global getPluralRule, rePlaceables, parse, compile */
-/* global loadINI, L20nMutationObserver */
+/* global loadINI */
 /* global translateFragment, setNodeL10n, translateElement */
 /* global getTranslatableChildren, getL10nAttributes */
 
@@ -29,7 +29,7 @@ navigator.mozL10n = {
   localize: function localize(element, id, args) {
     return setNodeL10n.call(navigator.mozL10n, element, id, args);
   },
-  translate: function translate(element) {
+  translate: function translate() {
   },
   translateFragment: function translate(element) {
     return translateFragment.call(navigator.mozL10n, element);
