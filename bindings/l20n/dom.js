@@ -47,13 +47,6 @@ function getL10nAttributes(element) {
 function translateElement(element) {
   var l10n = getL10nAttributes(element);
 
-  if (!l10n.id) {
-    if (!element.firstElementChild) {
-      element.textContent = '';
-    }
-    return true;
-  }
-
   var entity = this.ctx.getEntity(l10n.id, l10n.args);
 
   if (!entity) {
