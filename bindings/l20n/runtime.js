@@ -1,15 +1,23 @@
 'use strict';
 
-/* jshint -W104 */
 /* global Entity, Locale, Context, L10nError */
 /* global getPluralRule, rePlaceables, parse, compile */
-/* global loadINI */
-/* global translateFragment, localizeElement */
+/* global loadINI, L20nMutationObserver */
+/* global translateFragment, setNodeL10n, translateElement */
 /* global getTranslatableChildren, getL10nAttributes */
 
 var DEBUG = false;
 var isPretranslated = false;
 var rtlList = ['ar', 'he', 'fa', 'ps', 'qps-plocm', 'ur'];
+var nodeObserver = false;
+
+var moConfig = {
+  attributes: true,
+  characterData: false,
+  childList: true,
+  subtree: true,
+  attributeFilter: ['data-l10n-id', 'data-l10n-args']
+};
 
 // Public API
 
@@ -19,9 +27,11 @@ navigator.mozL10n = {
     return navigator.mozL10n.ctx.get(id, ctxdata);
   },
   localize: function localize(element, id, args) {
-    return localizeElement.call(navigator.mozL10n, element, id, args);
+    return setNodeL10n.call(navigator.mozL10n, element, id, args);
   },
   translate: function translate(element) {
+  },
+  translateFragment: function translate(element) {
     return translateFragment.call(navigator.mozL10n, element);
   },
   ready: function ready(callback) {
@@ -44,6 +54,14 @@ navigator.mozL10n = {
       return getDirection(navigator.mozL10n.ctx.supportedLocales[0]);
     }
   },
+  _observer: {
+    observeDocument: function() {
+      nodeObserver.observe(document, moConfig);
+    },
+    disconnect: function() {
+      nodeObserver.disconnect();
+    }
+  },
   _getInternalAPI: function() {
     return {
       Error: L10nError,
@@ -53,6 +71,7 @@ navigator.mozL10n = {
       getPluralRule: getPluralRule,
       rePlaceables: rePlaceables,
       getTranslatableChildren:  getTranslatableChildren,
+      translateFragment: translateFragment,
       getL10nAttributes: getL10nAttributes,
       loadINI: loadINI,
       fireLocalizedEvent: fireLocalizedEvent,
@@ -199,11 +218,70 @@ function initLocale() {
   });
 }
 
+function localizeMutations(mutations) {
+  var mutation, i;
+
+  for (i = 0; i < mutations.length; i++) {
+    mutation = mutations[i];
+    if (mutation.type === 'childList') {
+      var addedNode, j;
+
+      for (j = 0; j < mutation.addedNodes.length; j++) {
+        addedNode = mutation.addedNodes[j];
+
+        if (addedNode.nodeType === Node.ELEMENT_NODE &&
+            (addedNode.firstElementChild ||
+             addedNode.hasAttribute('data-l10n-id'))) {
+           if (addedNode.firstElementChild) {
+             translateFragment.call(navigator.mozL10n, addedNode);
+           } else {
+             translateElement.call(navigator.mozL10n, addedNode);
+           }
+        }
+      }
+    }
+
+    if (mutation.type === 'attributes') {
+      translateElement.call(navigator.mozL10n, mutation.target);
+    }
+  }
+}
+
+
+
+function onMutations(mutations, self) {
+  self.disconnect();
+
+  localizeMutations(mutations);
+
+  self.observe(document, moConfig);
+}
+
 function onReady() {
   if (!isPretranslated) {
-    this.translate();
+    switch (document.readyState) {
+      case 'loading':
+        break;
+      case 'interactive':
+      case 'complete':
+        var nodes = document.querySelectorAll('[data-l10n-id]');
+        var i, node;
+        for (i = 0; i < nodes.length; i++) {
+          node = nodes[i];
+          if (node.firstElementChild) {
+            translateFragment.call(navigator.mozL10n, node);
+          } else {
+            translateElement.call(navigator.mozL10n, node);
+          }
+        }
+        break;
+    }
   }
+
   isPretranslated = false;
+
+  nodeObserver = new MutationObserver(onMutations);
+  nodeObserver.observe(document, moConfig);
 
   fireLocalizedEvent.call(this);
 }

@@ -80,7 +80,7 @@ function initResources(callback) {
 }
 
 function onReady() {
-  this.translate();
+  L10n.translateFragment.call(navigator.mozL10n);
   L10n.fireLocalizedEvent.call(this);
 }
 

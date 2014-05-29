@@ -1,7 +1,7 @@
 'use strict';
 
 /* jshint -W104 */
-/* exported translateFragment, localizeElement */
+/* exported translateFragment, setNodeL10n */
 
 function translateFragment(element) {
   if (!element) {
@@ -9,7 +9,6 @@ function translateFragment(element) {
     document.documentElement.lang = this.language.code;
     document.documentElement.dir = this.language.direction;
   }
-  translateElement.call(this, element);
 
   var nodes = getTranslatableChildren(element);
   for (var i = 0; i < nodes.length; i++ ) {
@@ -21,27 +20,12 @@ function getTranslatableChildren(element) {
   return element ? element.querySelectorAll('*[data-l10n-id]') : [];
 }
 
-function localizeElement(element, id, args) {
-  if (!element) {
-    return;
+function setNodeL10n(element, id, args) {
+  if (id) {
+    element.setAttribute('data-l10n-id', id);
   }
-
-  if (!id) {
-    element.removeAttribute('data-l10n-id');
-    element.removeAttribute('data-l10n-args');
-    setTextContent(element, '');
-    return;
-  }
-
-  element.setAttribute('data-l10n-id', id);
-  if (args && typeof args === 'object') {
+  if (args) {
     element.setAttribute('data-l10n-args', JSON.stringify(args));
-  } else {
-    element.removeAttribute('data-l10n-args');
-  }
-
-  if (this.ctx.isReady) {
-    translateElement.call(this, element);
   }
 }
 
@@ -64,13 +48,17 @@ function translateElement(element) {
   var l10n = getL10nAttributes(element);
 
   if (!l10n.id) {
-    return;
+    if (!element.firstElementChild) {
+      element.textContent = '';
+    }
+    return true;
   }
 
   var entity = this.ctx.getEntity(l10n.id, l10n.args);
 
   if (!entity) {
-    return;
+    element.textContent = '';
+    return true;
   }
 
   if (typeof entity === 'string') {
