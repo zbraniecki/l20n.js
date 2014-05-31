@@ -54,14 +54,6 @@ navigator.mozL10n = {
       return getDirection(navigator.mozL10n.ctx.supportedLocales[0]);
     }
   },
-  _observer: {
-    observeDocument: function() {
-      nodeObserver.observe(document, moConfig);
-    },
-    disconnect: function() {
-      nodeObserver.disconnect();
-    }
-  },
   _getInternalAPI: function() {
     return {
       Error: L10nError,
