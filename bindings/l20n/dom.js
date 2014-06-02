@@ -10,6 +10,8 @@ function translateFragment(element) {
     document.documentElement.dir = this.language.direction;
   }
 
+  translateElement.call(this, element);
+
   var nodes = getTranslatableChildren(element);
   for (var i = 0; i < nodes.length; i++ ) {
     translateElement.call(this, nodes[i]);
@@ -47,10 +49,16 @@ function getL10nAttributes(element) {
 function translateElement(element) {
   var l10n = getL10nAttributes(element);
 
+  if (!l10n.id) {
+    return false;
+  }
+
   var entity = this.ctx.getEntity(l10n.id, l10n.args);
 
   if (!entity) {
-    element.textContent = '';
+    if (!element.firstElementChild) {
+      element.textContent = '';
+    }
     return true;
   }
 
