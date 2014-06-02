@@ -30,9 +30,10 @@ navigator.mozL10n = {
     return setNodeL10n.call(navigator.mozL10n, element, id, args);
   },
   translate: function translate() {
+    // XXX: Remove after removing obsolete calls. Bug 992473
   },
-  translateFragment: function translate(element) {
-    return translateFragment.call(navigator.mozL10n, element);
+  translateFragment: function translateFragment(fragment) {
+    return translateFragment.call(navigator.mozL10n, fragment);
   },
   ready: function ready(callback) {
     return navigator.mozL10n.ctx.ready(callback);
@@ -221,12 +222,10 @@ function localizeMutations(mutations) {
       for (j = 0; j < mutation.addedNodes.length; j++) {
         addedNode = mutation.addedNodes[j];
 
-        if (addedNode.nodeType === Node.ELEMENT_NODE &&
-            (addedNode.firstElementChild ||
-             addedNode.hasAttribute('data-l10n-id'))) {
+        if (addedNode.nodeType === Node.ELEMENT_NODE) {
            if (addedNode.firstElementChild) {
              translateFragment.call(navigator.mozL10n, addedNode);
-           } else {
+           } else if (addedNode.hasAttribute('data-l10n-id')) {
              translateElement.call(navigator.mozL10n, addedNode);
            }
         }
@@ -243,30 +242,21 @@ function localizeMutations(mutations) {
 
 function onMutations(mutations, self) {
   self.disconnect();
-
   localizeMutations(mutations);
-
   self.observe(document, moConfig);
 }
 
 function onReady() {
   if (!isPretranslated) {
-    switch (document.readyState) {
-      case 'loading':
-        break;
-      case 'interactive':
-      case 'complete':
-        var nodes = document.querySelectorAll('[data-l10n-id]');
-        var i, node;
-        for (i = 0; i < nodes.length; i++) {
-          node = nodes[i];
-          if (node.firstElementChild) {
-            translateFragment.call(navigator.mozL10n, node);
-          } else {
-            translateElement.call(navigator.mozL10n, node);
-          }
-        }
-        break;
+    var nodes = document.querySelectorAll('[data-l10n-id]');
+    var i, node;
+    for (i = 0; i < nodes.length; i++) {
+      node = nodes[i];
+      if (node.firstElementChild) {
+        translateFragment.call(navigator.mozL10n, node);
+      } else {
+        translateElement.call(navigator.mozL10n, node);
+      }
     }
   }
 
