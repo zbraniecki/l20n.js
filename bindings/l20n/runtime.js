@@ -29,10 +29,10 @@ navigator.mozL10n = {
   localize: function localize(element, id, args) {
     return setNodeL10n.call(navigator.mozL10n, element, id, args);
   },
-  translate: function translate() {
+  translate: function () {
     // XXX: Remove after removing obsolete calls. Bug 992473
   },
-  translateFragment: function translateFragment(fragment) {
+  translateFragment: function (fragment) {
     return translateFragment.call(navigator.mozL10n, fragment);
   },
   ready: function ready(callback) {
