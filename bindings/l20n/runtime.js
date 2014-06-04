@@ -248,7 +248,7 @@ function onMutations(mutations, self) {
 
 function onReady() {
   if (!isPretranslated) {
-    translateFragment.call(navigator.mozL10n, document);
+    translateFragment.call(navigator.mozL10n, document.documentElement);
 
     document.documentElement.lang = this.language.code;
     document.documentElement.dir = this.language.direction;

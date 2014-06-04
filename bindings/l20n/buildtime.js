@@ -80,7 +80,11 @@ function initResources(callback) {
 }
 
 function onReady() {
-  L10n.translateFragment.call(navigator.mozL10n);
+  L10n.translateFragment.call(navigator.mozL10n, document.documentElement);
+
+  document.documentElement.lang = this.language.code;
+  document.documentElement.dir = this.language.direction;
+
   L10n.fireLocalizedEvent.call(this);
 }
 
