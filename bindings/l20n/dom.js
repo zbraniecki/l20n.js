@@ -4,7 +4,7 @@
 /* exported translateFragment, localizeElement */
 
 function translateFragment(element) {
-  if (element.hasAttribute('data-l10n-id') {
+  if (element.hasAttribute('data-l10n-id')) {
     translateElement.call(this, element);
   }
 
