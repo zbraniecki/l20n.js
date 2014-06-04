@@ -162,7 +162,7 @@ function inlineLocalization() {
       direction: getDirection(locale.id)
     }
   };
-  translateFragment.call(l10n);
+  translateFragment.call(l10n, document.documentElement);
   // the visible DOM is now pretranslated
   isPretranslated = true;
   return true;
