@@ -1,16 +1,12 @@
 'use strict';
 
 /* jshint -W104 */
-/* exported translateFragment, setNodeL10n */
+/* exported translateFragment, localizeElement */
 
 function translateFragment(element) {
-  if (!element) {
-    element = document.documentElement;
-    document.documentElement.lang = this.language.code;
-    document.documentElement.dir = this.language.direction;
+  if (element.hasAttribute('data-l10n-id') {
+    translateElement.call(this, element);
   }
-
-  translateElement.call(this, element);
 
   var nodes = getTranslatableChildren(element);
   for (var i = 0; i < nodes.length; i++ ) {
@@ -22,12 +18,19 @@ function getTranslatableChildren(element) {
   return element ? element.querySelectorAll('*[data-l10n-id]') : [];
 }
 
-function setNodeL10n(element, id, args) {
-  if (id) {
-    element.setAttribute('data-l10n-id', id);
+function localizeElement(element, id, args) {
+  if (!id) {
+    element.removeAttribute('data-l10n-id');
+    element.removeAttribute('data-l10n-args');
+    setTextContent(element, '');
+    return;
   }
-  if (args) {
+
+  element.setAttribute('data-l10n-id', id);
+  if (args && typeof args === 'object') {
     element.setAttribute('data-l10n-args', JSON.stringify(args));
+  } else {
+    element.removeAttribute('data-l10n-args');
   }
 }
 

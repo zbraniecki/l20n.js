@@ -3,7 +3,7 @@
 /* global Entity, Locale, Context, L10nError */
 /* global getPluralRule, rePlaceables, parse, compile */
 /* global loadINI */
-/* global translateFragment, setNodeL10n, translateElement */
+/* global translateFragment, localizeElement, translateElement */
 /* global getTranslatableChildren, getL10nAttributes */
 
 var DEBUG = false;
@@ -27,7 +27,7 @@ navigator.mozL10n = {
     return navigator.mozL10n.ctx.get(id, ctxdata);
   },
   localize: function localize(element, id, args) {
-    return setNodeL10n.call(navigator.mozL10n, element, id, args);
+    return localizeElement.call(navigator.mozL10n, element, id, args);
   },
   translate: function () {
     // XXX: Remove after removing obsolete calls. Bug 992473
@@ -248,22 +248,18 @@ function onMutations(mutations, self) {
 
 function onReady() {
   if (!isPretranslated) {
-    var nodes = document.querySelectorAll('[data-l10n-id]');
-    var i, node;
-    for (i = 0; i < nodes.length; i++) {
-      node = nodes[i];
-      if (node.firstElementChild) {
-        translateFragment.call(navigator.mozL10n, node);
-      } else {
-        translateElement.call(navigator.mozL10n, node);
-      }
-    }
+    translateFragment.call(navigator.mozL10n, document);
+
+    document.documentElement.lang = this.language.code;
+    document.documentElement.dir = this.language.direction;
   }
 
   isPretranslated = false;
 
-  nodeObserver = new MutationObserver(onMutations);
-  nodeObserver.observe(document, moConfig);
+  if (!nodeObserver) {
+    nodeObserver = new MutationObserver(onMutations);
+    nodeObserver.observe(document, moConfig);
+  }
 
   fireLocalizedEvent.call(this);
 }
