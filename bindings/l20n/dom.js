@@ -1,7 +1,13 @@
 'use strict';
 
 /* jshint -W104 */
-/* exported translateFragment, localizeElement */
+/* exported translateFragment, translateDocument, localizeElement */
+
+function translateDocument() {
+  document.documentElement.lang = this.language.code;
+  document.documentElement.dir = this.language.direction;
+  translateFragment.call(this, document.documentElement);
+}
 
 function translateFragment(element) {
   if (element.hasAttribute('data-l10n-id')) {
@@ -58,10 +64,9 @@ function translateElement(element) {
 
   var entity = this.ctx.getEntity(l10n.id, l10n.args);
 
-  if (!entity) {
-    if (!element.firstElementChild) {
-      element.textContent = '';
-    }
+  if (entity === null ||           // the translation is missing
+      entity === undefined) {      // or it errored
+    element.textContent = '';
     return true;
   }
 

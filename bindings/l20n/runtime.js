@@ -2,7 +2,7 @@
 
 /* global Entity, Locale, Context, L10nError */
 /* global getPluralRule, rePlaceables, parse, compile */
-/* global loadINI */
+/* global translateDocument, loadINI */
 /* global translateFragment, localizeElement, translateElement */
 /* global getTranslatableChildren, getL10nAttributes */
 
@@ -64,7 +64,7 @@ navigator.mozL10n = {
       getPluralRule: getPluralRule,
       rePlaceables: rePlaceables,
       getTranslatableChildren:  getTranslatableChildren,
-      translateFragment: translateFragment,
+      translateDocument: translateDocument,
       getL10nAttributes: getL10nAttributes,
       loadINI: loadINI,
       fireLocalizedEvent: fireLocalizedEvent,
@@ -162,7 +162,8 @@ function inlineLocalization() {
       direction: getDirection(locale.id)
     }
   };
-  translateFragment.call(l10n, document.documentElement);
+  translateDocument.call(l10n);
+
   // the visible DOM is now pretranslated
   isPretranslated = true;
   return true;
@@ -238,8 +239,6 @@ function localizeMutations(mutations) {
   }
 }
 
-
-
 function onMutations(mutations, self) {
   self.disconnect();
   localizeMutations(mutations);
@@ -248,10 +247,7 @@ function onMutations(mutations, self) {
 
 function onReady() {
   if (!isPretranslated) {
-    translateFragment.call(navigator.mozL10n, document.documentElement);
-
-    document.documentElement.lang = this.language.code;
-    document.documentElement.dir = this.language.direction;
+    translateDocument.call(navigator.mozL10n);
   }
 
   isPretranslated = false;
