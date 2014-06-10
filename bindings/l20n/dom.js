@@ -64,10 +64,8 @@ function translateElement(element) {
 
   var entity = this.ctx.getEntity(l10n.id, l10n.args);
 
-  if (entity === null ||           // the translation is missing
-      entity === undefined) {      // or it errored
-    element.textContent = '';
-    return true;
+  if (!entity) {
+    return false;
   }
 
   if (typeof entity === 'string') {
