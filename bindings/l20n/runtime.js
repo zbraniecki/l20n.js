@@ -225,35 +225,35 @@ function localizeMutations(mutations) {
 
         if (addedNode.nodeType === Node.ELEMENT_NODE) {
            if (addedNode.firstElementChild) {
-             translateFragment.call(navigator.mozL10n, addedNode);
+             translateFragment.call(this, addedNode);
            } else if (addedNode.hasAttribute('data-l10n-id')) {
-             translateElement.call(navigator.mozL10n, addedNode);
+             translateElement.call(this, addedNode);
            }
         }
       }
     }
 
     if (mutation.type === 'attributes') {
-      translateElement.call(navigator.mozL10n, mutation.target);
+      translateElement.call(this, mutation.target);
     }
   }
 }
 
 function onMutations(mutations, self) {
   self.disconnect();
-  localizeMutations(mutations);
+  localizeMutations.call(this, mutations);
   self.observe(document, moConfig);
 }
 
 function onReady() {
   if (!isPretranslated) {
-    translateDocument.call(navigator.mozL10n);
+    translateDocument.call(this);
   }
 
   isPretranslated = false;
 
   if (!nodeObserver) {
-    nodeObserver = new MutationObserver(onMutations);
+    nodeObserver = new MutationObserver(onMutations.bind(this));
     nodeObserver.observe(document, moConfig);
   }
 
