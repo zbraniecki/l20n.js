@@ -117,6 +117,7 @@ if (window.document) {
           translateFragment.call(navigator.mozL10n, document.body);
         }
         ctxReady = true;
+        fireDOMContentLocalized();
       }
     });
   });
@@ -193,6 +194,17 @@ function onManifestReady() {
   ctx.negotiateLocales(manifest.languages,
                        navigator.languages,
                        manifest.default_language);
+}
+
+function fireDOMContentLocalized() {
+  var event = new CustomEvent('mozDOMLocalized', {
+    'bubbles': false,
+    'cancelable': false,
+    'detail': {
+      'language': this.ctx.supportedLocales[0]
+    }
+  });
+  document.dispatchEvent(event);
 }
 
 
