@@ -9,10 +9,13 @@
 var DEBUG = false;
 var isPretranslated = false;
 var rtlList = ['ar', 'he', 'fa', 'ps', 'qps-plocm', 'ur'];
-var nodeObserver = false;
-var resources = [];
+var manifest = null;
+var resLinks = [];
+var resToLoad = 0;
+var nodesToTranslate = [];
+var ctxReady = false;
 
-var moConfig = {
+var moNodeConfig = {
   attributes: true,
   characterData: false,
   childList: true,
@@ -25,43 +28,41 @@ var moHeadConfig = {
   characterData: false,
   childList: true,
   subtree: false,
-  attributeFilter: false
 };
 
 // Public API
 
+var ctx = new Context();
+
 navigator.mozL10n = {
-  ctx: new Context(),
+  ctx: ctx,
   get: function get(id, ctxdata) {
-    return navigator.mozL10n.ctx.get(id, ctxdata);
+    return ctx.get(id, ctxdata);
   },
   localize: function localize(element, id, args) {
-    return localizeElement.call(navigator.mozL10n, element, id, args);
-  },
-  translate: function () {
-    // XXX: Remove after removing obsolete calls. Bug 992473
+    return localizeElement.call(ctx, element, id, args);
   },
   translateFragment: function (fragment) {
-    return translateFragment.call(navigator.mozL10n, fragment);
+    return translateFragment.call(ctx, fragment);
   },
   ready: function ready(callback) {
-    return navigator.mozL10n.ctx.ready(callback);
+    return ctx.ready(callback);
   },
   once: function once(callback) {
-    return navigator.mozL10n.ctx.once(callback);
+    return ctx.once(callback);
   },
   get readyState() {
-    return navigator.mozL10n.ctx.isReady ? 'complete' : 'loading';
+    return ctx.isReady ? 'complete' : 'loading';
   },
   language: {
     set code(lang) {
-      navigator.mozL10n.ctx.requestLocales(lang);
+      ctx.requestLocales(lang);
     },
     get code() {
-      return navigator.mozL10n.ctx.supportedLocales[0];
+      return ctx.supportedLocales[0];
     },
     get direction() {
-      return getDirection(navigator.mozL10n.ctx.supportedLocales[0]);
+      return getDirection(ctx.supportedLocales[0]);
     }
   },
   _getInternalAPI: function() {
@@ -82,11 +83,63 @@ navigator.mozL10n = {
     };
   }
 };
-
 if (window.document) {
+  startHeadWatching();
+  ctx.once(loadPendingResources.bind(navigator.mozL10n));
+  var nodeObserver = new MutationObserver(onNodeMutations.bind(this));
+  nodeObserver.observe(document.documentElement, moNodeConfig);
+}
 
+function onL10nLinkInjected(url) {
+  var type = getURLType(url);
+  switch (type) {
+    case 'manifest':
+      loadManifest(url, parseManifest);
+      break;
+    case 'properties':
+      loadResource(url);
+      resToLoad++;
+      break;
+  }
+}
+
+function startHeadWatching() {
+  var links = document.querySelectorAll('link[type="application/l10n"]');
+  for (var i = 0; i < links.length; i++) {
+    onL10nLinkInjected(links[i].getAttribute('href'));
+  }
   var headObserver = new MutationObserver(onHeadMutations.bind(this));
-  var headObserver.observe(document, moHeadConfig);
+  headObserver.observe(document.head, moHeadConfig);
+}
+
+function parseManifest(json) {
+  manifest = json;
+  ctx.negotiateLocales(manifest.languages,
+                       navigator.languages,
+                       manifest.default_language);
+}
+
+function loadPendingResources() {
+  for (var i = 0; i < resLinks.length; i++) {
+    ctx.addResource(resLinks[i], onResourceLoaded.bind(this));
+  }
+  resLinks = null;
+}
+
+function loadResource(url) {
+  if (ctx.isReady) {
+    ctx.addResource(url, onResourceLoaded);
+    return;
+  }
+  resLinks.push(url);
+}
+
+function onResourceLoaded() {
+  resToLoad--;
+  if (resToLoad === 0) {
+    localizePendingNodes.call(this);
+    translateFragment.call(this, document.body);
+  }
 }
 
 function onHeadMutations(mutations, self) {
@@ -102,7 +155,7 @@ function onHeadMutations(mutations, self) {
 
         if (addedNode.nodeName.toLowerCase() === 'link' &&
             addedNode.getAttribute('type') === 'application/l10n') {
-
+          onL10nLinkInjected(addedNode.getAttribute('href'));
         }
       }
     }
@@ -111,17 +164,56 @@ function onHeadMutations(mutations, self) {
 
 function loadResourceNode(node) {
   var url = node.getAttribute('href');
-  var type = node.substr(url.lastIndexOf('.') + 1);
+  var type = url.substr(url.lastIndexOf('.') + 1);
   if (type === 'ini') {
     loadINIResource.call(this, url, onINILoaded.bind(this));
   }
 }
 
-function onINILoaded(err) {
+function getURLType(url) {
+  return url.substr(url.lastIndexOf('.') + 1);
 }
 
+function onNodeMutations(mutations, self) {
+  self.disconnect();
+  localizeNodeMutations.call(this, mutations);
+  self.observe(document, moNodeConfig);
+}
 
+function onNodeInjected(node) {
+  if (node.firstElementChild) {
+    translateFragment.call(this, node);
+  } else {
+    translateElement.call(this, node);
+  }
+}
 
+function localizePendingNodes() {
+  for (var i = 0; i < nodesToTranslate.length; i++) {
+    onNodeInjected.call(this, nodesToTranslate[i]);
+  }
+  nodesToTranslate = null;
+}
 
+function localizeNodeMutations(mutations) {
+  var mutation, i;
 
+  for (i = 0; i < mutations.length; i++) {
+    mutation = mutations[i];
+    if (mutation.type === 'childList') {
+      var addedNode, j;
 
+      for (j = 0; j < mutation.addedNodes.length; j++) {
+        addedNode = mutation.addedNodes[j];
+
+        if (addedNode.nodeType === Node.ELEMENT_NODE) {
+          if (ctxReady) {
+            onNodeInjected.call(this, addedNode);
+          } else {
+            nodesToTranslate.push(addedNode);
+          }
+        }
+      }
+    }
+  }
+}
