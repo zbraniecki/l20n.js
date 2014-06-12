@@ -3,12 +3,17 @@
     <meta charset="utf-8">
     <title data-l10n-id="title"></title>
 
-    <script src="../dist/runtime/l10n.js"></script>
     <meta name="l10n-resources" content="locales/settings.{{locale}}.properties">
     <meta name="l10n-languages" content="en-US, fr">
     <meta name="l10n-default_language" content="en-US">
 
-    <link rel="resource" type="application/l10n" href="locales/example.{{locale}}.properties">
+    <script type="l10n/resource+json" lang="en-US">
+{
+  "title": "mozL10n example",
+  "hello": "Hello, world!"
+}
+    </script>
+    <script src="../dist/runtime/l10n.js"></script>
   </head>
 
   <body>

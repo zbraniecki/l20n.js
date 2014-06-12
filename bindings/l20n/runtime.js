@@ -14,6 +14,7 @@ var resLinks = [];
 var resToLoad = 0;
 var nodesToTranslate = [];
 var ctxReady = false;
+var needToTranslateDocument = true;
 
 var moNodeConfig = {
   attributes: true,
@@ -83,12 +84,48 @@ navigator.mozL10n = {
     };
   }
 };
+
+var readyStates = {
+  'loading': 0,
+  'interactive': 1,
+  'complete': 2
+};
+
+function waitFor(state, callback) {
+  state = readyStates[state];
+  if (readyStates[document.readyState] >= state) {
+    callback();
+    return;
+  }
+
+  document.addEventListener('readystatechange', function l10n_onrsc() {
+    if (readyStates[document.readyState] >= state) {
+      document.removeEventListener('readystatechange', l10n_onrsc);
+      callback();
+    }
+  });
+}
+
 if (window.document) {
   startHeadWatching();
-  ctx.once(loadPendingResources.bind(navigator.mozL10n));
+  waitFor('interactive', function() {
+    ctx.once(function() {
+      if (resToLoad === 0) {
+        localizePendingNodes.call(navigator.mozL10n);
+        if (needToTranslateDocument) {
+          translateFragment.call(navigator.mozL10n, document.body);
+        }
+        ctxReady = true;
+      }
+    });
+  });
   var nodeObserver = new MutationObserver(onNodeMutations.bind(navigator.mozL10n));
   nodeObserver.observe(document.documentElement, moNodeConfig);
+  if (document.readyState === 'loading') {
+    needToTranslateDocument = false;
+  }
 }
+
 
 function onL10nLinkInjected(node) {
   var url = node.getAttribute('href');
@@ -108,7 +145,9 @@ function startHeadWatching() {
   var nodes = document.head.querySelectorAll('meta[name="l10n-resources"],' +
                                              'meta[name="l10n-languages"],' +
                                              'meta[name="l10n-default_language"],' +
-                                             'link[type="application/l10n"]');
+                                             'link[type="application/l10n"],' +
+                                             'script[type="l10n/resource+properties"],' +
+                                             'script[type="l10n/resource+json"]');
   for (var i = 0; i < nodes.length; i++) {
     var nodeName = nodes[i].nodeName.toLowerCase();
     switch (nodeName) {
@@ -117,6 +156,9 @@ function startHeadWatching() {
         break;
       case 'meta':
         onMetaInjected(nodes[i]);
+        break;
+      case 'script':
+        onScriptInjected(nodes[i]);
         break;
     }
   }
@@ -160,10 +202,6 @@ function loadResource(url) {
 
 function onResourceLoaded() {
   resToLoad--;
-  if (resToLoad === 0) {
-    localizePendingNodes.call(this);
-    translateFragment.call(this, document.body);
-  }
 }
 
 function onHeadMutations(mutations, self) {
@@ -187,6 +225,12 @@ function onHeadMutations(mutations, self) {
           case 'meta':
             if (addedNode.getAttribute('name').substr(0, 4) === 'l10n') {
               onMetaInjected(addedNode);
+            }
+            break;
+          case 'script':
+            if (addedNode.hasAttribute('type') &&
+                addedNode.getAttribute('type').substr(0, 13) === 'l10n/resource') {
+              onScriptInjected(addedNode);
             }
             break;
         }
@@ -216,9 +260,31 @@ function onNodeMutations(mutations, self) {
 function onNodeInjected(node) {
   if (node.firstElementChild) {
     translateFragment.call(this, node);
-  } else {
+  } else if (node.hasAttribute('data-l10n-id')) {
     translateElement.call(this, node);
   }
+}
+
+function onScriptInjected(node) {
+  resToLoad++;
+
+  var type = node.getAttribute('type').substr(14);
+  var lang = node.getAttribute('lang');
+  var locale = ctx.getLocale(lang);
+
+  var source = node.textContent;
+
+  switch(type) {
+    case 'properties':
+      var ast = parse(ctx, source);
+      break;
+    case 'json':
+      var ast = JSON.parse(source);
+      break;
+  }
+
+  locale.addAST(ast);
+  resToLoad--;
 }
 
 function localizePendingNodes() {
@@ -243,7 +309,10 @@ function localizeNodeMutations(mutations) {
           if (ctxReady) {
             onNodeInjected.call(this, addedNode);
           } else {
-            nodesToTranslate.push(addedNode);
+            if (addedNode.hasAttribute('data-l10n-id') ||
+                addedNode.firstElementChild) {
+              nodesToTranslate.push(addedNode);
+            }
           }
         }
       }
