@@ -9,7 +9,7 @@
 var DEBUG = false;
 var isPretranslated = false;
 var rtlList = ['ar', 'he', 'fa', 'ps', 'qps-plocm', 'ur'];
-var manifest = null;
+var manifest = {};
 var resLinks = [];
 var resToLoad = 0;
 var nodesToTranslate = [];
@@ -86,28 +86,41 @@ navigator.mozL10n = {
 if (window.document) {
   startHeadWatching();
   ctx.once(loadPendingResources.bind(navigator.mozL10n));
-  var nodeObserver = new MutationObserver(onNodeMutations.bind(this));
+  var nodeObserver = new MutationObserver(onNodeMutations.bind(navigator.mozL10n));
   nodeObserver.observe(document.documentElement, moNodeConfig);
 }
 
-function onL10nLinkInjected(url) {
+function onL10nLinkInjected(node) {
+  var url = node.getAttribute('href');
   var type = getURLType(url);
   switch (type) {
     case 'manifest':
       loadManifest(url, parseManifest);
       break;
     case 'properties':
-      loadResource(url);
+      loadResource.call(navigator.mozL10n, url);
       resToLoad++;
       break;
   }
 }
 
 function startHeadWatching() {
-  var links = document.querySelectorAll('link[type="application/l10n"]');
-  for (var i = 0; i < links.length; i++) {
-    onL10nLinkInjected(links[i].getAttribute('href'));
+  var nodes = document.head.querySelectorAll('meta[name="l10n-resources"],' +
+                                             'meta[name="l10n-languages"],' +
+                                             'meta[name="l10n-default_language"],' +
+                                             'link[type="application/l10n"]');
+  for (var i = 0; i < nodes.length; i++) {
+    var nodeName = nodes[i].nodeName.toLowerCase();
+    switch (nodeName) {
+      case 'link':
+        onL10nLinkInjected(nodes[i]);
+        break;
+      case 'meta':
+        onMetaInjected(nodes[i]);
+        break;
+    }
   }
+
   var headObserver = new MutationObserver(onHeadMutations.bind(this));
   headObserver.observe(document.head, moHeadConfig);
 }
@@ -119,6 +132,17 @@ function parseManifest(json) {
                        manifest.default_language);
 }
 
+function onMetaInjected(node) {
+  var name = node.getAttribute('name').substr(5);
+  manifest[name] = node.getAttribute('content');
+
+  if (Object.keys(manifest).length == 3) {
+    ctx.negotiateLocales(manifest.languages,
+                         navigator.languages,
+                         manifest.default_language);
+  }
+}
+
 function loadPendingResources() {
   for (var i = 0; i < resLinks.length; i++) {
     ctx.addResource(resLinks[i], onResourceLoaded.bind(this));
@@ -128,7 +152,7 @@ function loadPendingResources() {
 
 function loadResource(url) {
   if (ctx.isReady) {
-    ctx.addResource(url, onResourceLoaded);
+    ctx.addResource(url, onResourceLoaded.bind(this));
     return;
   }
   resLinks.push(url);
@@ -153,9 +177,18 @@ function onHeadMutations(mutations, self) {
       for (j = 0; j < mutation.addedNodes.length; j++) {
         addedNode = mutation.addedNodes[j];
 
-        if (addedNode.nodeName.toLowerCase() === 'link' &&
-            addedNode.getAttribute('type') === 'application/l10n') {
-          onL10nLinkInjected(addedNode.getAttribute('href'));
+        name = addedNode.nodeName.toLowerCase();
+        switch (name) {
+          case 'link':
+            if (addedNode.getAttribute('type') === 'application/l10n') {
+              onL10nLinkInjected(addedNode);
+            }
+            break;
+          case 'meta':
+            if (addedNode.getAttribute('name').substr(0, 4) === 'l10n') {
+              onMetaInjected(addedNode);
+            }
+            break;
         }
       }
     }
