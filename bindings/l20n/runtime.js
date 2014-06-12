@@ -107,6 +107,7 @@ function waitFor(state, callback) {
 }
 
 if (window.document) {
+  /* Startup logic */
   startHeadWatching();
   waitFor('interactive', function() {
     ctx.once(function() {
@@ -123,21 +124,6 @@ if (window.document) {
   nodeObserver.observe(document.documentElement, moNodeConfig);
   if (document.readyState === 'loading') {
     needToTranslateDocument = false;
-  }
-}
-
-
-function onL10nLinkInjected(node) {
-  var url = node.getAttribute('href');
-  var type = getURLType(url);
-  switch (type) {
-    case 'manifest':
-      loadManifest(url, parseManifest);
-      break;
-    case 'properties':
-      loadResource.call(navigator.mozL10n, url);
-      resToLoad++;
-      break;
   }
 }
 
@@ -169,21 +155,9 @@ function startHeadWatching() {
 
 function parseManifest(json) {
   manifest = json;
-  ctx.negotiateLocales(manifest.languages,
-                       navigator.languages,
-                       manifest.default_language);
+  onManifestReady();
 }
 
-function onMetaInjected(node) {
-  var name = node.getAttribute('name').substr(5);
-  manifest[name] = node.getAttribute('content');
-
-  if (Object.keys(manifest).length == 3) {
-    ctx.negotiateLocales(manifest.languages,
-                         navigator.languages,
-                         manifest.default_language);
-  }
-}
 
 function loadPendingResources() {
   for (var i = 0; i < resLinks.length; i++) {
@@ -203,6 +177,26 @@ function loadResource(url) {
 function onResourceLoaded() {
   resToLoad--;
 }
+
+function getURLType(url) {
+  return url.substr(url.lastIndexOf('.') + 1);
+}
+
+function localizePendingNodes() {
+  for (var i = 0; i < nodesToTranslate.length; i++) {
+    onNodeInjected.call(this, nodesToTranslate[i]);
+  }
+  nodesToTranslate = null;
+}
+
+function onManifestReady() {
+  ctx.negotiateLocales(manifest.languages,
+                       navigator.languages,
+                       manifest.default_language);
+}
+
+
+/* Head MO */
 
 function onHeadMutations(mutations, self) {
   var mutation, i;
@@ -239,32 +233,6 @@ function onHeadMutations(mutations, self) {
   }
 }
 
-function loadResourceNode(node) {
-  var url = node.getAttribute('href');
-  var type = url.substr(url.lastIndexOf('.') + 1);
-  if (type === 'ini') {
-    loadINIResource.call(this, url, onINILoaded.bind(this));
-  }
-}
-
-function getURLType(url) {
-  return url.substr(url.lastIndexOf('.') + 1);
-}
-
-function onNodeMutations(mutations, self) {
-  self.disconnect();
-  localizeNodeMutations.call(this, mutations);
-  self.observe(document, moNodeConfig);
-}
-
-function onNodeInjected(node) {
-  if (node.firstElementChild) {
-    translateFragment.call(this, node);
-  } else if (node.hasAttribute('data-l10n-id')) {
-    translateElement.call(this, node);
-  }
-}
-
 function onScriptInjected(node) {
   resToLoad++;
 
@@ -287,11 +255,37 @@ function onScriptInjected(node) {
   resToLoad--;
 }
 
-function localizePendingNodes() {
-  for (var i = 0; i < nodesToTranslate.length; i++) {
-    onNodeInjected.call(this, nodesToTranslate[i]);
+function onMetaInjected(node) {
+  var name = node.getAttribute('name').substr(5);
+  manifest[name] = node.getAttribute('content');
+
+  if (Object.keys(manifest).length == 3) {
+    ctx.negotiateLocales(manifest.languages,
+                         navigator.languages,
+                         manifest.default_language);
   }
-  nodesToTranslate = null;
+}
+
+function onL10nLinkInjected(node) {
+  var url = node.getAttribute('href');
+  var type = getURLType(url);
+  switch (type) {
+    case 'manifest':
+      loadManifest(url, parseManifest);
+      break;
+    case 'properties':
+      loadResource.call(navigator.mozL10n, url);
+      resToLoad++;
+      break;
+  }
+}
+
+/* Node MO */
+
+function onNodeMutations(mutations, self) {
+  self.disconnect();
+  localizeNodeMutations.call(this, mutations);
+  self.observe(document, moNodeConfig);
 }
 
 function localizeNodeMutations(mutations) {
@@ -317,5 +311,13 @@ function localizeNodeMutations(mutations) {
         }
       }
     }
+  }
+}
+
+function onNodeInjected(node) {
+  if (node.firstElementChild) {
+    translateFragment.call(this, node);
+  } else if (node.hasAttribute('data-l10n-id')) {
+    translateElement.call(this, node);
   }
 }
