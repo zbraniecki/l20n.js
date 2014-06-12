@@ -201,7 +201,7 @@ function fireDOMContentLocalized() {
     'bubbles': false,
     'cancelable': false,
     'detail': {
-      'language': this.ctx.supportedLocales[0]
+      'language': navigator.mozL10n.ctx.supportedLocales[0]
     }
   });
   document.dispatchEvent(event);
