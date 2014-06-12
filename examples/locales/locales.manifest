@@ -1,0 +1,10 @@
+{
+  "languages": [
+    "en-US",
+    "fr"
+  ],
+  "default_langauge": "en-US",
+  "resources": [
+    "locales/example.{{locale}}.properties"
+  ]
+}
