@@ -173,6 +173,8 @@ Navigator.prototype.l10n = {
       resolve(hardDrive[url]);
     });
   },
+  getAvailableLanguages: function(id, version) {
+  },
   resources: {},
 };
 
