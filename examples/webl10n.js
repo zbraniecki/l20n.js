@@ -13,6 +13,11 @@ Element.prototype.setShadowL10n = function(domFragment) {
   root.appendChild(domFragment);
 }
 
+Element.prototype.l10n = {
+  args: {},
+  id: null,
+};
+
 /// INTERNAL 
 
 var moList = new WeakMap();
@@ -83,6 +88,8 @@ HTMLDocument.prototype.l10n = {
       resolve(manifest);
     });
   },
+
+  args: {},
 
   resources: [],
 };
