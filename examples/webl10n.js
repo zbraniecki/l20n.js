@@ -1,7 +1,7 @@
 
 // API
 
-Element.prototype.onL10nAttrs = function(cb) {
+Element.prototype.registerL10nListener = function(cb) {
   if (!(this in moList)) {
     moList[this] = new MutationObserver(onMutations.bind(this, cb));
     moList[this].observe(this, moConfig);

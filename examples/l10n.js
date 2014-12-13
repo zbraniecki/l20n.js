@@ -66,7 +66,7 @@ var env = new Env(document.l10n.manifest);
 defaultCtx = env.createContext(navigator.languages, document.l10n.resources);
 defaultCtx.ready.then(translateDocument);
 
-document.body.onL10nAttrs(function(nodes) {
+document.body.registerL10nListener(function(nodes) {
   var node = nodes[0];
   var l10nId = node.getAttribute('l10n-id');
   var l10nArgs = JSON.parse(node.getAttribute('l10n-args'));
