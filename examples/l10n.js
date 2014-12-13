@@ -49,7 +49,8 @@ Context.prototype.formatEntity = function(l10nId) {
 
       if (l10nId in res) {
         return {
-          value: res[l10nId]
+          value: res[l10nId].value,
+          attrs: res[l10nId].attrs
         };
       }
     }
@@ -68,11 +69,12 @@ defaultCtx.ready.then(translateDocument);
 document.body.onL10nAttrs(function(nodes) {
   var node = nodes[0];
   var l10nId = node.getAttribute('l10n-id');
+  var l10nArgs = JSON.parse(node.getAttribute('l10n-args'));
 
-  defaultCtx.formatEntity(l10nId).then(function(entity) {
+  defaultCtx.formatEntity(l10nId, l10nArgs).then(function(entity) {
     var f = document.createDocumentFragment();
     f.textContent = entity.value;
-    node.setShadowL10n(f);
+    node.setL10n(f, entity.attrs);
   });
 });
 

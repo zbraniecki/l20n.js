@@ -8,9 +8,13 @@ Element.prototype.onL10nAttrs = function(cb) {
   }
 }
 
-Element.prototype.setShadowL10n = function(domFragment) {
-  var root = this.createShadowRoot();
-  root.appendChild(domFragment);
+Element.prototype.setL10n = function(domFragment, attrs) {
+  this.l10n.root = this.createShadowRoot();
+  this.l10n.root.appendChild(domFragment);
+
+  for (var key in attrs) {
+    this.setAttribute(key, attrs[key]);
+  }
 }
 
 Element.prototype.l10n = {
@@ -39,25 +43,11 @@ function localizeMutations(cb, mutations) {
 
   for (var i = 0; i < mutations.length; i++) {
     mutation = mutations[i];
-    /*if (mutation.type === 'childList') {
-      var addedNode;
-
-      for (var j = 0; j < mutation.addedNodes.length; j++) {
-        addedNode = mutation.addedNodes[j];
-
-        if (addedNode.nodeType !== Node.ELEMENT_NODE) {
-          continue;
-        }
-
-        if (addedNode.childElementCount) {
-          //translateFragment.call(this, addedNode);
-        } else if (addedNode.hasAttribute('data-l10n-id')) {
-          //translateElement.call(this, addedNode);
-        }
-      }
-    }*/
 
     if (mutation.type === 'attributes') {
+      mutation.target.l10n.id = mutation.target.getAttribute('l10n-id');
+      mutation.target.l10n.args =
+        JSON.parse(mutation.target.getAttribute('l10n-args'));
       cb([mutation.target]);
     }
   }
@@ -135,15 +125,6 @@ function onHeadMutations(mutations, self) {
           }
         } else if (addedNode instanceof HTMLLinkElement) {
           switch (addedNode.getAttribute('rel')) {
-            case 'manifest':
-              l10nManifest = loadJSON(addedNode.getAttribute('href')).then(
-                function(json) {
-                  var manifest = {};
-                  manifest.locales = json.locales;
-                  manifest.default_locale = json.default_locale;
-                  return manifest;
-              });
-              break;
             case 'localization':
               document.l10n.resources.push(addedNode.getAttribute('href'));
               break;
@@ -165,7 +146,14 @@ Intl.prioritizeLocales = function(availableLocales,
 // navigator.l10n
 
 var hardDrive = {
-  'locales/example.en-US.properties': {hello: 'Hello'}
+  'locales/example.en-US.properties': {
+    hello: {
+      value: 'Hello',
+      attrs: {
+        title: 'Hello Title'
+      }
+    }
+  }
 };
 
 Navigator.prototype.l10n = {
