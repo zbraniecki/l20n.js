@@ -48,7 +48,6 @@ function print(type, err, data) {
     }
      
   } catch (e) {
-    console.log(e);
     logError(e);
   }
   if (program.raw) {
