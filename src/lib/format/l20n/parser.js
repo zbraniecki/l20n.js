@@ -102,40 +102,121 @@ var L20nParser = {
     return hash;
   },
 
-  unescapeString: function(str) {
-    str = str.replace(this._patterns.controlChars, '$1');
-    return str.replace(this._patterns.unicode, function(match, token) {
-      return unescape('%u' + '0000'.slice(token.length) + token);
-    });
+  unescapeString: function() {
+    var ch = this._source.charAt(++this._index);
+    var cc;
+    if (ch === 'u') { // special case for unicode
+      var ucode = '';
+      for (var i = 0; i < 4; i++) {
+        ch = this._source[++this._index];
+        cc = ch.charCodeAt(0);
+        if ((cc > 96 && cc < 103) || // a-f
+            (cc > 64 && cc < 71) || // A-F
+            (cc > 47 && cc < 58)) { // 0-9
+              ucode += ch;
+            } else {
+              throw this.error('Illegal unicode escape sequence');
+            }
+      }
+      return String.fromCharCode(parseInt(ucode, 16));
+    }
+    return ch;
   },
 
-  getString: function(opchar) {
-    var unesc = false;
+  getComplexString: function(opchar, opcharLen) {
+    var body = null;
+    var buf = '';
+    var placeables = 0;
+    var ch;
 
-    var opcharPos = this._source.indexOf(opchar, this._index + 1);
+    this._index += opcharLen - 1;
 
-    while (opcharPos !== -1 &&
-           this._source.charCodeAt(opcharPos - 1) === 92 &&
-           this._source.charCodeAt(opcharPos - 2) !== 92) {
-      opcharPos = this._source.indexOf(opchar, opcharPos + 1);
-      unesc = true;
+    var start = this._index + 1;
+
+    walkChars:
+    while (true) {
+      ch = this._source.charAt(++this._index);
+      switch (ch) {
+        case '\\':
+          buf += this.unescapeString();
+          break;
+        case '{':
+          /* We want to go to default unless {{ */
+          /* jshint -W086 */
+          if (this._source.charAt(this._index + 1) === '{') {
+            if (body === null) {
+              body = [];
+            }
+            if (placeables > MAX_PLACEABLES - 1) {
+              throw this.error('Too many placeables, maximum allowed is ' +
+                  MAX_PLACEABLES);
+            }
+            if (buf) {
+              body.push(buf);
+            }
+            this._index += 2;
+            this.getWS();
+            body.push(this.getExpression());
+            this.getWS();
+            if (this._source.charAt(this._index) !== '}' ||
+                this._source.charAt(this._index + 1) !== '}') {
+                  throw this.error('Expected "}}"');
+                }
+            this._index += 1;
+            placeables++;
+            
+            buf = '';
+            break;
+          }
+        default:
+          if (opcharLen === 1) {
+            if (ch === opchar) {
+              this._index++;
+              break walkChars;
+            }
+          } else {
+            if (ch === opchar[0] &&
+                this._source.charAt(this._index + 1) === ch &&
+                this._source.charAt(this._index + 2) === ch) {
+              this._index += 3;
+              break walkChars;
+            }
+          }
+          buf += ch;
+          if (this._index + 1 >= this._length) {
+            throw this.error('Unclosed string literal');
+          }
+      }
     }
-    
+    if (body === null) {
+      return buf;
+    }
+    if (buf.length) {
+      body.push(buf);
+    }
+    return body;
+  },
+
+  getString: function(opchar, opcharLen) {
+    var opcharPos = this._source.indexOf(opchar, this._index + opcharLen);
+    var placeablePos, escPos, buf;
+
     if (opcharPos === -1) {
       throw this.error('Unclosed string literal');
     }
+    buf = this._source.slice(this._index + opcharLen, opcharPos);
 
-    var buf = this._source.slice(this._index + 1, opcharPos);
-
-    this._index = opcharPos + 1;
-
-    if (unesc) {
-      buf = this.unescapeString(buf);
+    placeablePos = buf.indexOf('{{');
+    if (placeablePos !== -1) {
+      return this.getComplexString(opchar, opcharLen);
+    } else {
+      escPos = buf.indexOf('\\');
+      if (escPos !== -1) {
+        return this.getComplexString(opchar, opcharLen);
+      }
     }
 
-    if (buf.indexOf('{{') !== -1) {
-      return this.parseString(buf);
-    }
+    this._index = opcharPos + opcharLen;
 
     return buf;
   },
@@ -147,12 +228,12 @@ var L20nParser = {
       ch = this._source.charAt(this._index);
     }
     if (ch === '\'' || ch === '"') {
-      val = this.getString(ch);
+      val = this.getString(ch, 1);
     } else if (ch === '{') {
       val = this.getHash();
     }
 
-    if (!val) {
+    if (val === undefined) {
       if (!optional) {
         throw this.error('Unknown value type');
       }
@@ -270,6 +351,12 @@ var L20nParser = {
     }
 
     return ast;
+  },
+
+  getExpression: function() {
+    var id = this.getIdentifier();
+
+    return {t: 'idOrVar', v: id};
   },
 
   getIndex: function() {
