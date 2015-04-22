@@ -11,7 +11,7 @@ var L20nParser = {
 
   _patterns: {
     complexId: /[A-Za-z_][\w\.]*/g,
-    identifier: /[A-Za-z_]\w*/g,
+    identifier: /[A-Za-z_]\w*/g
   },
 
   parse: function (ctx, string) {
@@ -134,10 +134,28 @@ var L20nParser = {
     return ch;
   },
 
+  isOverlay: function(str) {
+    var overlay = false;
+
+    var testPos = str.indexOf('<');
+    if (testPos !== -1 &&
+        str.charAt(testPos + 1) !== ' ') {
+      overlay = true;
+    } else {
+      testPos = str.indexOf('&');
+      if (testPos !== -1 &&
+          str.charAt(testPos + 1) !== ' ') {
+        overlay = true;
+      }
+    }
+    return overlay;
+  },
+
   getComplexString: function(opchar, opcharLen) {
     var body = null;
     var buf = '';
     var placeables = 0;
+    var overlay = false;
     var ch;
 
     this._index += opcharLen - 1;
@@ -163,6 +181,9 @@ var L20nParser = {
                   MAX_PLACEABLES);
             }
             if (buf) {
+              if (this.isOverlay(buf)) {
+                overlay = true;
+              }
               body.push(buf);
             }
             this._index += 2;
@@ -180,18 +201,9 @@ var L20nParser = {
             break;
           }
         default:
-          if (opcharLen === 1) {
-            if (ch === opchar) {
-              this._index++;
-              break walkChars;
-            }
-          } else {
-            if (ch === opchar[0] &&
-                this._source.charAt(this._index + 1) === ch &&
-                this._source.charAt(this._index + 2) === ch) {
-              this._index += 3;
-              break walkChars;
-            }
+          if (ch === opchar) {
+            this._index++;
+            break walkChars;
           }
           buf += ch;
           if (this._index + 1 >= this._length) {
@@ -200,12 +212,15 @@ var L20nParser = {
       }
     }
     if (body === null) {
-      return buf;
+      return [buf, this.isOverlay(buf)];
     }
     if (buf.length) {
+      if (this.isOverlay(buf)) {
+        overlay = true;
+      }
       body.push(buf);
     }
-    return body;
+    return [body, overlay];
   },
 
   getString: function(opchar, opcharLen) {
@@ -216,31 +231,32 @@ var L20nParser = {
     }
     var buf = this._source.slice(this._index + opcharLen, opcharPos);
 
-    var placeablePos = buf.indexOf('{{');
-    if (placeablePos !== -1) {
+    var testPos = buf.indexOf('{{');
+    if (testPos !== -1) {
       return this.getComplexString(opchar, opcharLen);
     }
     
-    var escPos = buf.indexOf('\\');
-    if (escPos !== -1) {
+    testPos = buf.indexOf('\\');
+    if (testPos !== -1) {
       return this.getComplexString(opchar, opcharLen);
     }
 
-    // < and &\s+ should trigger {$o:}
-
     this._index = opcharPos + opcharLen;
 
-    return buf;
+    return [buf, this.isOverlay(buf)];
   },
 
   getValue: function(optional, ch, index) {
     var val;
+    var overlay = false;
 
     if (ch === undefined) {
       ch = this._source.charAt(this._index);
     }
     if (ch === '\'' || ch === '"') {
       val = this.getString(ch, 1);
+      overlay = val[1];
+      val = val[0];
     } else if (ch === '{') {
       val = this.getHash();
     }
@@ -252,10 +268,16 @@ var L20nParser = {
       return null;
     }
 
-    if (index) {
+    if (index || overlay) {
       var value = Object.create(null);
-      value.$v = val;
-      value.$x = index;
+      value.v = val;
+
+      if (index) {
+        value.x = index;
+      }
+      if (overlay) {
+        value.t = 'overlay';
+      }
       return value;
     }
 
@@ -400,10 +422,13 @@ var L20nParser = {
 
   getCallExpression: function(callee) {
     this.getWS();
-    var args = this.getItemList(this.getExpression.bind(this), ')');
+    var exp = Object.create(null);
 
-    args.unshift(callee);
-    return args;
+    exp.t = 'call';
+    exp.v = callee;
+    exp.a = this.getItemList(this.getExpression.bind(this), ')');
+
+    return exp;
   },
 
   getPrimaryExpression: function() {
