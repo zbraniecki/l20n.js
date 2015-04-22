@@ -16,6 +16,7 @@
   "undef": true,
   "unused": true,
   "validthis": true,
+  "esnext": true,
 
   "node": true,
   "devel": true,

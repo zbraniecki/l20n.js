@@ -28,6 +28,7 @@ function L20nSerializer() {
           break;
         case '$x':
           index = dumpIndex(entity.$x);
+          break;
         case '$i':
           id = entity.$i.replace(/-/g, '_');
           break;

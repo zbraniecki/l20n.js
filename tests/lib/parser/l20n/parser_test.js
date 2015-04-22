@@ -7,18 +7,23 @@ if (typeof navigator !== 'undefined') {
 } else {
   var assert = require('assert');
   var L10n = {
-    PropertiesParser: require('../../../src/lib/format/properties/parser')
+    L20nParser: require('../../../../src/lib/format/l20n/parser')
   };
 }
 
 describe('L10n Parser', function() {
 
-  it('string value', function() {
-    var ast = L10n.PropertiesParser.parse(null, 'id = string');
+  it('string value with double quotes', function() {
+    var ast = L10n.L20nParser.parse(null, '<id "string">');
     assert.strictEqual(ast[0].$v, 'string');
   });
 
-  it('empty value', function() {
+  it('string value with single quotes', function() {
+    var ast = L10n.L20nParser.parse(null, '<id \'string\'>');
+    assert.strictEqual(ast[0].$v, 'string');
+  });
+
+  /*it('empty value', function() {
     var ast = L10n.PropertiesParser.parse(null, 'id =');
     assert.equal(ast[0].$v, '');
   });
@@ -26,9 +31,9 @@ describe('L10n Parser', function() {
   it('empty value with white spaces', function() {
     var ast = L10n.PropertiesParser.parse(null, 'id =  ');
     assert.equal(ast[0].$v, '');
-  });
+  });*/
 
-  it('basic errors', function() {
+  /*it('basic errors', function() {
     var strings = [
       '',
       'id',
@@ -69,7 +74,6 @@ describe('L10n Parser', function() {
     for (var i in strings) {
       if (strings.hasOwnProperty(i)) {
 
-        /* jshint -W083 */
         assert.throws(function() {
           L10n.PropertiesParser.parse(null, strings[i][0]);
         }, strings[i][1]);
@@ -129,6 +133,6 @@ describe('L10n Parser', function() {
         assert.equal(Object.keys(ast).length, 0);
       }
     }
-  });
+  });*/
 
 });

@@ -39,17 +39,17 @@ var L20nParser = {
       if (ch === '>') {
         break;
       } else if (!ws1) {
-        throw error('Expected ">"');
+        throw this.error('Expected ">"');
       }
     }
     return attrs;
   },
 
-  getKVP: function(type) {
+  getKVP: function() {
     var key = this.getIdentifier();
     this.getWS();
     if (this._source.charAt(this._index) !== ':') {
-      throw error('Expected ":"');
+      throw this.error('Expected ":"');
     }
     ++this._index;
     this.getWS();
@@ -67,7 +67,7 @@ var L20nParser = {
     }
     this.getWS();
     if (this._source.charAt(this._index) !== ':') {
-      throw error('Expected ":"');
+      throw this.error('Expected ":"');
     }
     ++this._index;
     this.getWS();
@@ -96,7 +96,7 @@ var L20nParser = {
         break;
       }
       if (!comma) {
-        throw error('Expected "}"');
+        throw this.error('Expected "}"');
       }
     }
     return hash;
@@ -122,7 +122,7 @@ var L20nParser = {
     }
     
     if (opcharPos === -1) {
-      throw error('Unclosed string literal');
+      throw this.error('Unclosed string literal');
     }
 
     var buf = this._source.slice(this._index + 1, opcharPos);
@@ -154,7 +154,7 @@ var L20nParser = {
 
     if (!val) {
       if (!optional) {
-        throw error('Unknown value type');
+        throw this.error('Unknown value type');
       }
       return null;
     }
@@ -205,7 +205,7 @@ var L20nParser = {
     }
 
     if (!this.getRequiredWS()) {
-      throw error('Expected white space');
+      throw this.error('Expected white space');
     }
 
     var ch = this._source.charAt(this._index);
@@ -213,7 +213,7 @@ var L20nParser = {
     var attrs = null;
     if (value === null) {
       if (ch === '>') {
-        throw error('Expected ">"');
+        throw this.error('Expected ">"');
       }
       attrs = this.getAttributes();
     } else {
@@ -221,7 +221,7 @@ var L20nParser = {
       var ws1 = this.getRequiredWS();
       if (this._source.charAt(this._index) !== '>') {
         if (!ws1) {
-          throw error('Expected ">"');
+          throw this.error('Expected ">"');
         }
         attrs = this.getAttributes();
       }
@@ -253,7 +253,7 @@ var L20nParser = {
       }
       return this.getEntity(id, null);
     }
-    throw error('Invalid entry');
+    throw this.error('Invalid entry');
   },
 
   getL20n: function() {
@@ -323,8 +323,8 @@ var L20nParser = {
     var context = this._source.slice(start, pos + 10);
 
     var msg = message + ' at pos ' + pos + ': "' + context + '"';
-    return new ParserError(msg, pos, context);
+    return new L10nError(msg);
   }
-}
+};
 
 module.exports = L20nParser;

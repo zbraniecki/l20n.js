@@ -1,7 +1,5 @@
 'use strict';
 
-var Promise = require('promise');
-
 var L10nError = require('./errors').L10nError;
 var EventEmitter = require('./events').EventEmitter;
 var Locale = require('./locale').Locale;
