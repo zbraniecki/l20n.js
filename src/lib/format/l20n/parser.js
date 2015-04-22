@@ -2,8 +2,6 @@
 
 var L10nError = require('../../errors').L10nError;
 
-var unescape = require('querystring').unescape;
-
 var MAX_PLACEABLES = 100;
 
 var L20nParser = {
@@ -12,11 +10,8 @@ var L20nParser = {
   _length: null,
 
   _patterns: {
+    idOrVar: /[A-Za-z_][\w\.]*/g,
     identifier: /[A-Za-z_]\w*/g,
-    unicode: /\\u([0-9a-fA-F]{1,4})/g,
-    controlChars: /\\([\\\n\r\t\b\f\{\}\"\'])/g,
-    index: /@cldr\.plural\((\w+)\)/g,
-    placeables: /\{\{\s*([^\s]*?)\s*\}\}/,
   },
 
   parse: function (ctx, string) {
@@ -63,7 +58,7 @@ var L20nParser = {
     if (this._source.charAt(this._index) === '[') {
       ++this._index;
       this.getWS();
-      index = this.getIndex();
+      index = this.getItemList(this.getExpression.bind(this), ']');
     }
     this.getWS();
     if (this._source.charAt(this._index) !== ':') {
@@ -278,6 +273,19 @@ var L20nParser = {
     return match[0];
   },
 
+  getIdOrVar: function() {
+    var ch = this._source.charAt(this._index);
+    if (ch === '@' || ch === '$') {
+      this._index++;
+    }
+
+    var reId = this._patterns.idOrVar;
+    reId.lastIndex = this._index;
+    var match = reId.exec(this._source);
+    this._index = reId.lastIndex;
+    return match[0];
+  },
+
   getEntity: function(id, index) {
     var entity = {'$i': id};
 
@@ -330,7 +338,7 @@ var L20nParser = {
       if (this._source.charCodeAt(this._index) === 91) {
         ++this._index;
         return this.getEntity(id,
-                         this.getIndex());
+          this.getItemList(this.getExpression.bind(this), ']'));
       }
       return this.getEntity(id, null);
     }
@@ -354,50 +362,52 @@ var L20nParser = {
   },
 
   getExpression: function() {
-    var id = this.getIdentifier();
-
-    return {t: 'idOrVar', v: id};
-  },
-
-  getIndex: function() {
-    this.getWS();
-
-    this._patterns.index.lastIndex = this._index;
-
-    var match = this._patterns.index.exec(this._source);
-
-    this._index = this._patterns.index.lastIndex;
+    var idOrVar = this.getIdOrVar();
 
     this.getWS();
 
-    this._index++;
+    var index = Object.create(null);
+    index.t = 'idOrVar';
+    index.v = idOrVar;
 
-    return [{t: 'idOrVar', v: 'plural'}, match[1]];
-  },
-
-  parseString: function(str) {
-    var chunks = str.split(this._patterns.placeables);
-    var complexStr = [];
-
-    var len = chunks.length;
-    var placeablesCount = (len - 1) / 2;
-
-    if (placeablesCount >= MAX_PLACEABLES) {
-      throw new L10nError('Too many placeables (' + placeablesCount +
-                          ', max allowed is ' + MAX_PLACEABLES + ')');
+    if (this._source.charAt(this._index) === '(') {
+      return this.getCallExpression(index);
     }
+    
+    return index;
+  },
 
-    for (var i = 0; i < chunks.length; i++) {
-      if (chunks[i].length === 0) {
-        continue;
-      }
-      if (i % 2 === 1) {
-        complexStr.push({t: 'idOrVar', v: chunks[i]});
+  getCallExpression: function(callee) {
+    this.getWS();
+    var args = this.getItemList(this.getExpression.bind(this), ')');
+    
+    args.unshift(callee);
+    return args;
+  },
+
+  getItemList: function(callback, closeChar) {
+    var ch;
+    this.getWS();
+    if (this._source.charAt(this._index) === closeChar) {
+      ++this._index;
+      return [];
+    }
+    var items = [];
+    while (true) {
+      items.push(callback());
+      this.getWS();
+      ch = this._source.charAt(this._index);
+      if (ch === ',') {
+        ++this._index;
+        this.getWS();
+      } else if (ch === closeChar) {
+        ++this._index;
+        break;
       } else {
-        complexStr.push(chunks[i]);
+        throw this.error('Expected "," or "' + closeChar + '"');
       }
     }
-    return complexStr;
+    return items;
   },
 
   error: function(message, pos) {
