@@ -5,6 +5,7 @@
 window.L20n = {
   Context: Context,
   PropertiesParser: PropertiesParser,
+  L20nParser: L20nParser,
   getPluralRule: getPluralRule,
   getContext: function L20n_getContext(id) {
     return new Context(id);

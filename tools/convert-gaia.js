@@ -5,8 +5,8 @@
 var fs = require('fs');
 var program = require('commander');
 
-var PropertiesParser = require('../lib/l20n/format/properties/parser');
-var L20nSerializer = require('../lib/l20n/format/l20n/serializer').L20nSerializer;
+var PropertiesParser = require('../src/lib/format/properties/parser');
+var L20nSerializer = require('../src/lib/format/l20n/serializer').L20nSerializer;
 
 var l20nSerializer = new L20nSerializer();
 

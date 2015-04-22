@@ -1,11 +1,12 @@
 load('../../dist/jsshell/l10n.js');
 
-var parser = L20n.PropertiesParser;
+var parser = L20n.L20nParser;
 var env = {
-  __plural: L20n.getPluralRule('en-US')
+  __plural: L20n.getPluralRule('en-US'),
+  '__cldr.plural': L20n.getPluralRule('en-US')
 };
 
-var code = read('./example.properties');
+var code = read('./example.l20n');
 var data = {
   "brandShortName": "BRANDSHORTNAME",
   "ssid": "SSID",

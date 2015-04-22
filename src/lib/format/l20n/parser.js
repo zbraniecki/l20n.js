@@ -10,7 +10,7 @@ var L20nParser = {
   _length: null,
 
   _patterns: {
-    idOrVar: /[A-Za-z_][\w\.]*/g,
+    complexId: /[A-Za-z_][\w\.]*/g,
     identifier: /[A-Za-z_]\w*/g,
   },
 
@@ -75,10 +75,22 @@ var L20nParser = {
   getHash: function() {
     ++this._index;
     this.getWS();
-    var hi, comma, hash = Object.create(null);
+    var defItem, hi, comma, hash = Object.create(null);
+
     while (true) {
+      var isDefItem = false;
+      if (this._source.charAt(this._index) === '*') {
+        ++this._index;
+        if (defItem !== undefined) {
+          throw this.error('Default item redefinition forbidden');
+        }
+        isDefItem = true;
+      }
       hi = this.getKVP();
       hash[hi[0]] = hi[1];
+      if (isDefItem) {
+        defItem = hi[0];
+      }
       this.getWS();
 
       comma = this._source.charAt(this._index) === ',';
@@ -93,6 +105,10 @@ var L20nParser = {
       if (!comma) {
         throw this.error('Expected "}"');
       }
+    }
+    
+    if (defItem !== undefined) {
+      hash['__default'] = defItem;
     }
     return hash;
   },
@@ -194,22 +210,23 @@ var L20nParser = {
 
   getString: function(opchar, opcharLen) {
     var opcharPos = this._source.indexOf(opchar, this._index + opcharLen);
-    var placeablePos, escPos, buf;
 
     if (opcharPos === -1) {
       throw this.error('Unclosed string literal');
     }
-    buf = this._source.slice(this._index + opcharLen, opcharPos);
+    var buf = this._source.slice(this._index + opcharLen, opcharPos);
 
-    placeablePos = buf.indexOf('{{');
+    var placeablePos = buf.indexOf('{{');
     if (placeablePos !== -1) {
       return this.getComplexString(opchar, opcharLen);
-    } else {
-      escPos = buf.indexOf('\\');
-      if (escPos !== -1) {
-        return this.getComplexString(opchar, opcharLen);
-      }
     }
+    
+    var escPos = buf.indexOf('\\');
+    if (escPos !== -1) {
+      return this.getComplexString(opchar, opcharLen);
+    }
+
+    // < and &\s+ should trigger {$o:}
 
     this._index = opcharPos + opcharLen;
 
@@ -236,7 +253,10 @@ var L20nParser = {
     }
 
     if (index) {
-      return {'$v': val, '$x': index};
+      var value = Object.create(null);
+      value.$v = val;
+      value.$x = index;
+      return value;
     }
 
     return val;
@@ -260,7 +280,6 @@ var L20nParser = {
     }
   },
 
-
   getIdentifier: function() {
     var reId = this._patterns.identifier;
 
@@ -268,26 +287,31 @@ var L20nParser = {
 
     var match = reId.exec(this._source);
 
+    if (reId.lastIndex - this._index !== match[0].length) {
+      throw this.error('Identifier has to start with [a-zA-Z_]');
+    }
+
     this._index = reId.lastIndex;
 
     return match[0];
   },
 
-  getIdOrVar: function() {
-    var ch = this._source.charAt(this._index);
-    if (ch === '@' || ch === '$') {
-      this._index++;
-    }
-
-    var reId = this._patterns.idOrVar;
+  getComplexId: function() {
+    var reId = this._patterns.complexId;
     reId.lastIndex = this._index;
     var match = reId.exec(this._source);
+
+    if (reId.lastIndex - this._index !== match[0].length) {
+      throw this.error('Identifier has to start with [a-zA-Z_]');
+    }
+
     this._index = reId.lastIndex;
     return match[0];
   },
 
   getEntity: function(id, index) {
-    var entity = {'$i': id};
+    var entity = Object.create(null);
+    entity.$i = id;
 
     if (index) {
       entity.$x = index;
@@ -362,27 +386,51 @@ var L20nParser = {
   },
 
   getExpression: function() {
-    var idOrVar = this.getIdOrVar();
+    var exp = this.getPrimaryExpression();
 
     this.getWS();
 
-    var index = Object.create(null);
-    index.t = 'idOrVar';
-    index.v = idOrVar;
-
     if (this._source.charAt(this._index) === '(') {
-      return this.getCallExpression(index);
+      this._index++;
+      return this.getCallExpression(exp);
     }
     
-    return index;
+    return exp;
   },
 
   getCallExpression: function(callee) {
     this.getWS();
     var args = this.getItemList(this.getExpression.bind(this), ')');
-    
+
     args.unshift(callee);
     return args;
+  },
+
+  getPrimaryExpression: function() {
+    var cc = this._source.charCodeAt(this._index);
+
+    var prim = Object.create(null);
+
+    switch (cc) {
+      // variable: $
+      case 36:
+        ++this._index;
+        prim.t = 'var';
+        prim.v = this.getComplexId();
+        break;
+      // global: @
+      case 64:
+        ++this._index;
+        prim.t = 'glob';
+        prim.v = this.getComplexId();
+        break;
+      default:
+        prim.t = 'id';
+        prim.v = this.getIdentifier();
+        break;
+    }
+
+    return prim;
   },
 
   getItemList: function(callback, closeChar) {
@@ -407,6 +455,7 @@ var L20nParser = {
         throw this.error('Expected "," or "' + closeChar + '"');
       }
     }
+
     return items;
   },
 

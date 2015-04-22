@@ -2,7 +2,7 @@
 
 var L10nError = require('./errors').L10nError;
 
-var KNOWN_MACROS = ['plural'];
+var KNOWN_MACROS = ['plural', 'cldr.plural'];
 
 var MAX_PLACEABLE_LENGTH = 2500;
 var rePlaceables = /\{\{\s*(.+?)\s*\}\}/g;
@@ -199,7 +199,7 @@ function resolveValue(locals, args, env, expr, index) {
   if (index) {
     // try to use the index in order to select the right dict member
     var selector = resolveSelector(args, env, expr, index);
-    if (expr.hasOwnProperty(selector)) {
+    if (selector in expr) {
       return resolveValue(locals, args, env, expr[selector]);
     }
   }

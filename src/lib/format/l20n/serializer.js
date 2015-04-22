@@ -26,11 +26,14 @@ function L20nSerializer() {
         case '$v':
           val = entity.$v;
           break;
+        case '$o':
+          val = entity.$o;
+          break;
         case '$x':
           index = dumpIndex(entity.$x);
           break;
         case '$i':
-          id = entity.$i.replace(/-/g, '_');
+          id = dumpIdentifier(entity.$i);
           break;
         default:
           attrs[key] = entity[key];
@@ -43,6 +46,10 @@ function L20nSerializer() {
       return '<' + id + index + ' ' + dumpValue(val, 0) +
         '\n' + dumpAttributes(attrs) + '>';
     }
+  }
+
+  function dumpIdentifier(id) {
+    return id.replace(/-/g, '_');
   }
 
   function dumpIndex(index) {
@@ -62,6 +69,9 @@ function L20nSerializer() {
       return dumpComplexString(value);
     }
     if (typeof value === 'object') {
+      if (value.$o) {
+        return dumpValue(value.$o);
+      }
       return dumpHash(value, depth);
     }
   }
@@ -79,7 +89,7 @@ function L20nSerializer() {
       if (typeof chunks[i] === 'string') {
         str += chunks[i];
       } else {
-        str += '{{ ' + chunks[i].v + ' }}';
+        str += '{{ ' + dumpIdentifier(chunks[i].v) + ' }}';
       }
     }
     return str + '"';
