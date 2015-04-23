@@ -15,6 +15,53 @@ if (typeof navigator !== 'undefined') {
 var parse = L10n.L20nParser.parse.bind(L10n.L20nParser);
 
 describe('L10n Parser', function() {
+  describe('Parser', function() {
+    it('malformed entity errors', function() {
+      var strings = [
+        'd',
+        '<',
+        '<i',
+        '<id',
+        '<id<',
+        '<id ',
+        '<>',
+        '<"">',
+        '< "">',
+        '< id>',
+        '<id>',
+        '<id>',
+        '<id ">',
+        '<id \'>',
+        '<id ""',
+        '<id <',
+        '<<',
+        '< <',
+        '<!id',
+        '<*id',
+        '<id "value>',
+        '<id value">',
+        '<id \'value">',
+        '<id \'value>',
+        '<id value\'>',
+        '<id"value">',
+        '< id "value">',
+        '<()>',
+        '<+s>',
+        '<id-id2>',
+        '<-id>',
+        '<"id">',
+        '<\'id\'>',
+        '<2>',
+        '<09>',
+      ];
+      for (var i in strings) {
+        assert.throws(function() {
+          var ast = parse(null, strings[i]);
+        });
+      }
+    });
+  });
+
   describe('Simple strings', function() {
     it('string value with double quotes', function() {
       var ast = parse(null, '<id "string">');
@@ -29,6 +76,72 @@ describe('L10n Parser', function() {
     it('empty value', function() {
       var ast = parse(null, '<id "">');
       assert.equal(ast[0].$v, '');
+    });
+  });
+
+  describe('String escapes', function() {
+    it('single doublequote escape', function() {
+      var ast = parse(null, '<id "\\"">');
+      assert.strictEqual(ast[0].$v, '"');
+    });
+
+    it('single singlequote escape', function() {
+      var ast = parse(null, '<id \'\\\'\'>');
+      assert.strictEqual(ast[0].$v, '\'');
+    });
+
+    it('single doublequote escape in the middle of a word', function() {
+      var ast = parse(null, '<id "str\\"ing">');
+      assert.strictEqual(ast[0].$v, 'str"ing');
+    });
+
+    it('single singlequote escape in the middle of a word', function() {
+      var ast = parse(null, '<id "str\\\'ing">');
+      assert.strictEqual(ast[0].$v, 'str\'ing');
+    });
+
+    it('escape a placeable', function() {
+      var ast = parse(null, '<id "test \\{{ \\\"more\\\" }}">');
+      assert.strictEqual(ast[0].$v, 'test {{ "more" }}');
+    });
+
+    it('double escape before placeable', function() {
+      var ast = parse(null, '<id "test \\\\{{ n }}">');
+      assert.strictEqual(ast[0].$v[0], 'test \\');
+      assert.deepEqual(ast[0].$v[1], {t: 'id', v: 'n'});
+    });
+
+    it('triple escape before placeable', function() {
+      var ast = parse(null, '<id "test \\\\\\{{ n }}">');
+      assert.strictEqual(ast[0].$v, 'test \\{{ n }}');
+    });
+
+    it('double escape', function() {
+      var ast = parse(null, '<id "test \\\\ more">');
+      assert.strictEqual(ast[0].$v, 'test \\ more');
+    });
+
+    it('escape a letter', function() {
+      var ast = parse(null, '<id "test \\a more">');
+      assert.strictEqual(ast[0].$v, 'test a more');
+    });
+
+    it('double escape at the end', function() {
+      var ast = parse(null, '<id "test \\\\">');
+      assert.strictEqual(ast[0].$v, 'test \\');
+    });
+  });
+
+  describe('Unicode escapes', function() {
+    it('simple unicode escape', function() {
+      var ast = parse(null, '<id "string \\ua0a0 foo">');
+      assert.strictEqual(ast[0].$v, 'string ꂠ foo');
+    });
+
+    it('unicode escapes before placeable and end', function() {
+      var ast = parse(null, '<id "string \\ua0a0{{ foo }} foo \\ua0a0">');
+      assert.strictEqual(ast[0].$v[0], 'string ꂠ');
+      assert.strictEqual(ast[0].$v[2], ' foo ꂠ');
     });
   });
 
@@ -50,6 +163,18 @@ describe('L10n Parser', function() {
     it('string with an escaped placeable', function() {
       var ast = parse(null, '<id "test \\{{ var }} test2">');
       assert.strictEqual(ast[0].$v, 'test {{ var }} test2');
+    });
+
+    it('complex string errors', function() {
+      var strings = [
+        '<id "test {{ var ">',
+        '<id "test {{ var \\}} ">',
+      ];
+      for (var i in strings) {
+        assert.throws(function() {
+          var ast = parse(null, strings[i]);
+        });
+      }
     });
   });
 
@@ -89,6 +214,12 @@ describe('L10n Parser', function() {
       assert.strictEqual(ast[0].$v.many, 'Many');
     });
 
+    it('simple hash value with a trailing comma', function() {
+      var ast = parse(null, '<id {one: "One", many: "Many", }>');
+      assert.strictEqual(ast[0].$v.one, 'One');
+      assert.strictEqual(ast[0].$v.many, 'Many');
+    });
+
     it('hash value with default', function() {
       var ast = parse(null, '<id {one: "One", *many: "Many"}>');
       assert.strictEqual(ast[0].$v.one, 'One');
@@ -118,6 +249,32 @@ describe('L10n Parser', function() {
       var ast = parse(null, '<id {one: "foo {{ $n }}", many: "Many"}>');
       assert.strictEqual(ast[0].$v.one[0], 'foo ');
       assert.deepEqual(ast[0].$v.one[1], {t: 'var', v: 'n'});
+    });
+
+    it('hash errors', function() {
+      var strings = [
+        '<id {}>',
+        '<id {a: 2}>',
+        '<id {a: "d">',
+        '<id a: "d"}>',
+        '<id {{a: "d"}>',
+        '<id {a: "d"}}>',
+        '<id {a:} "d"}>',
+        '<id {2}>',
+        '<id {"a": "foo"}>',
+        '<id {"a": \'foo\'}>',
+        '<id {2: "foo"}>',
+        '<id {a:"foo"b:"foo"}>',
+        '<id {a }>',
+        '<id {a: 2, b , c: 3 } >',
+        '<id {*a: "v", *b: "c"}>',
+        '<id {}>',
+      ];
+      for (var i in strings) {
+        assert.throws(function() {
+          var ast = parse(null, strings[i]);
+        });
+      }
     });
   });
 
@@ -178,6 +335,26 @@ describe('L10n Parser', function() {
       assert.deepEqual(ast[0].title.one.t, 'overlay');
       assert.strictEqual(ast[0].title.__default, 'one');
     });
+
+    it('attribute errors', function() {
+      var strings = [
+        '<id : "foo">',
+        '<id "value" : "foo">',
+        '<id 2: "foo">',
+        '<id a: >',
+        '<id: "">',
+        '<id a: b:>',
+        '<id a: "foo" "heh">',
+        '<id a: 2>',
+        '<id "a": "a">',
+        '<id a2:"a"a3:"v">',
+      ];
+      for (var i in strings) {
+        assert.throws(function() {
+          var ast = parse(null, strings[i]);
+        });
+      }
+    });
   });
 
   describe('Index', function() {
@@ -201,6 +378,25 @@ describe('L10n Parser', function() {
       var ast = parse(null, '<id title[n, v]: "foo">');
       assert.deepEqual(ast[0].title.x[0], {t: 'id', v: 'n'});
       assert.deepEqual(ast[0].title.x[1], {t: 'id', v: 'v'});
+    });
+
+    it('index errors', function() {
+      var strings = [
+        '<id[ "foo">',
+        '<id] "foo">',
+        '<id[ \'] "foo">',
+        '<id{ ] "foo">',
+        '<id[ } "foo">',
+        '<id[" ] "["a"]>',
+        '<id[a]["a"]>',
+        '<id["foo""foo"] "fo">',
+        '<id[a, b, ] "foo">',
+      ];
+      for (var i in strings) {
+        assert.throws(function() {
+          var ast = parse(null, strings[i]);
+        });
+      }
     });
   });
 
@@ -244,6 +440,25 @@ describe('L10n Parser', function() {
       assert.strictEqual(ast[0].$x[0].v.v, 'icu.formatDate');
       assert.deepEqual(ast[0].$x[0].a[0], {t: 'var', v: 'd'});
       assert.deepEqual(ast[0].$x[0].a[1], {t: 'id', v: 'dateShortFormat'});
+    });
+
+    it('identifier errors', function() {
+      var strings = [
+        '<i`d "foo">',
+        '<0d "foo">',
+        '<09 "foo">',
+        '<i!d "foo">',
+        '<id[i`d] "foo">',
+        '<id[0d] "foo">',
+        '<id[i!d] "foo">',
+        '<id "test {{ i`d }}">',
+        '<id "test {{ 09d }}">',
+      ];
+      for (var i in strings) {
+        assert.throws(function() {
+          var ast = parse(null, strings[i]);
+        });
+      }
     });
   });
 });

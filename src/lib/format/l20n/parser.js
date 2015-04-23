@@ -309,7 +309,8 @@ var L20nParser = {
 
     var match = reId.exec(this._source);
 
-    if (reId.lastIndex - this._index !== match[0].length) {
+    if (!match ||
+        reId.lastIndex - this._index !== match[0].length) {
       throw this.error('Identifier has to start with [a-zA-Z_]');
     }
 
@@ -323,7 +324,8 @@ var L20nParser = {
     reId.lastIndex = this._index;
     var match = reId.exec(this._source);
 
-    if (reId.lastIndex - this._index !== match[0].length) {
+    if (!match ||
+        reId.lastIndex - this._index !== match[0].length) {
       throw this.error('Identifier has to start with [a-zA-Z_]');
     }
 
@@ -491,7 +493,7 @@ var L20nParser = {
     var start = this._source.lastIndexOf('<', pos - 1);
     var lastClose = this._source.lastIndexOf('>', pos - 1);
     start = lastClose > start ? lastClose + 1 : start;
-    var context = '\x1b[90m' + this._source.slice(start, pos - 1) + '\x1b[0m';
+    var context = '\x1b[90m' + this._source.slice(start, pos) + '\x1b[0m';
     context += this._source.slice(pos, pos + 10);
 
     var msg = message + ' at pos ' + pos + ': `' + context + '`';
