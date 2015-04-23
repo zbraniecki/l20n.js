@@ -34,7 +34,7 @@ describe('L10n Parser', function() {
     it('string with a placeable', function() {
       var ast = L10n.L20nParser.parse(null, '<id "test {{ var }} test2">');
       assert.strictEqual(ast[0].$v[0], 'test ');
-      assert.deepEqual(ast[0].$v[1], { t: 'idOrVar', v: 'var' });
+      assert.deepEqual(ast[0].$v[1], { t: 'id', v: 'var' });
       assert.strictEqual(ast[0].$v[2], ' test2');
     });
 
@@ -42,7 +42,7 @@ describe('L10n Parser', function() {
       var ast = L10n.L20nParser.parse(null,
         '<id "test \\\" {{ var }} test2">');
       assert.strictEqual(ast[0].$v[0], 'test " ');
-      assert.deepEqual(ast[0].$v[1], { t: 'idOrVar', v: 'var' });
+      assert.deepEqual(ast[0].$v[1], { t: 'id', v: 'var' });
       assert.strictEqual(ast[0].$v[2], ' test2');
     });
 
@@ -52,4 +52,47 @@ describe('L10n Parser', function() {
       assert.strictEqual(ast[0].$v, 'test {{ var }} test2');
     });
   });
+
+  describe('Overlays', function() {
+    it('string value with HTML markup', function() {
+      var ast = L10n.L20nParser.parse(null, 
+        '<id "string <strong>foo</strong>">');
+      assert.strictEqual(ast[0].$v.t, 'overlay');
+    });
+
+    it('string value with an entity', function() {
+      var ast = L10n.L20nParser.parse(null, 
+        '<id "string &nbsp; foo">');
+      assert.strictEqual(ast[0].$v.t, 'overlay');
+    });
+
+    it('string value with a smaller sign', function() {
+      var ast = L10n.L20nParser.parse(null, 
+        '<id "string < foo">');
+      assert.strictEqual(ast[0].$v.t, undefined);
+    });
+
+    it('string value with an & sign', function() {
+      var ast = L10n.L20nParser.parse(null, 
+        '<id "string & foo">');
+      assert.strictEqual(ast[0].$v.t, undefined);
+    });
+  });
+
+  describe('Hash values', function() {
+    it('simple hash value', function() {
+      var ast = L10n.L20nParser.parse(null, '<id {one: "One", many: "Many"}>');
+      assert.strictEqual(ast[0].$v.one, 'One');
+      assert.strictEqual(ast[0].$v.many, 'Many');
+    });
+
+    it('hash value with default', function() {
+      var ast = L10n.L20nParser.parse(null,
+        '<id {one: "One", *many: "Many"}>');
+      assert.strictEqual(ast[0].$v.one, 'One');
+      assert.strictEqual(ast[0].$v.many, 'Many');
+      assert.strictEqual(ast[0].$v.__default, 'many');
+    });
+  });
+
 });
