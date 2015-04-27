@@ -22,6 +22,193 @@ var L20nParser = {
     return this.getL20n();
   },
 
+  getL20n: function() {
+    var ast = [];
+
+    this.getWS();
+    while (this._index < this._length) {
+      var e = this.getEntry();
+      ast.push(e);
+
+      if (this._index < this._length) {
+        this.getWS();
+      }
+    }
+
+    return ast;
+  },
+
+  getEntry: function() {
+    // 60 === '<'
+    if (this._source.charCodeAt(this._index) === 60) {
+      ++this._index;
+      var id = this.getIdentifier();
+      // 91 == '['
+      if (this._source.charCodeAt(this._index) === 91) {
+        ++this._index;
+        return this.getEntity(id,
+          this.getItemList(this.getExpression.bind(this), ']'));
+      }
+      return this.getEntity(id, null);
+    }
+    throw this.error('Invalid entry');
+  },
+
+  getEntity: function(id, index) {
+    var entity = Object.create(null);
+    entity.$i = id;
+
+    if (index) {
+      entity.$x = index;
+    }
+
+    if (!this.getRequiredWS()) {
+      throw this.error('Expected white space');
+    }
+
+    var ch = this._source.charAt(this._index);
+    var value = this.getValue(index === null, ch);
+    var attrs = null;
+    if (value === null) {
+      if (ch === '>') {
+        throw this.error('Expected ">"');
+      }
+      attrs = this.getAttributes();
+    } else {
+      entity.$v = value;
+      var ws1 = this.getRequiredWS();
+      if (this._source.charAt(this._index) !== '>') {
+        if (!ws1) {
+          throw this.error('Expected ">"');
+        }
+        attrs = this.getAttributes();
+      }
+    }
+
+    // skip '>'
+    ++this._index;
+
+    if (attrs) {
+      /* jshint -W089 */
+      for (var key in attrs) {
+        entity[key] = attrs[key];
+      }
+    }
+
+    return entity;
+  },
+
+  getValue: function(optional, ch, index) {
+    var val;
+    var overlay = false;
+
+    if (ch === undefined) {
+      ch = this._source.charAt(this._index);
+    }
+    if (ch === '\'' || ch === '"') {
+      val = this.getString(ch, 1);
+      overlay = val[1];
+      val = val[0];
+    } else if (ch === '{') {
+      val = this.getHash();
+    }
+
+    if (val === undefined) {
+      if (!optional) {
+        throw this.error('Unknown value type');
+      }
+      return null;
+    }
+
+    if (index || overlay) {
+      var value = Object.create(null);
+      value.v = val;
+
+      if (index) {
+        value.x = index;
+      }
+      if (overlay) {
+        value.t = 'overlay';
+      }
+      return value;
+    }
+
+    return val;
+  },
+
+  getWS: function() {
+    var cc = this._source.charCodeAt(this._index);
+    // space, \n, \t, \r
+    while (cc === 32 || cc === 10 || cc === 9 || cc === 13) {
+      cc = this._source.charCodeAt(++this._index);
+    }
+  },
+
+  getRequiredWS: function() {
+    var pos = this._index;
+    var cc = this._source.charCodeAt(pos);
+    // space, \n, \t, \r
+    while (cc === 32 || cc === 10 || cc === 9 || cc === 13) {
+      cc = this._source.charCodeAt(++this._index);
+    }
+    return this._index !== pos;
+  },
+
+  getIdentifier: function() {
+    var reId = this._patterns.identifier;
+
+    reId.lastIndex = this._index;
+
+    var match = reId.exec(this._source);
+
+    if (!match ||
+        reId.lastIndex - this._index !== match[0].length) {
+      throw this.error('Identifier has to start with [a-zA-Z_]');
+    }
+
+    this._index = reId.lastIndex;
+
+    return match[0];
+  },
+
+  getComplexId: function() {
+    var reId = this._patterns.complexId;
+    reId.lastIndex = this._index;
+    var match = reId.exec(this._source);
+
+    if (!match ||
+        reId.lastIndex - this._index !== match[0].length) {
+      throw this.error('Identifier has to start with [a-zA-Z_]');
+    }
+
+    this._index = reId.lastIndex;
+    return match[0];
+  },
+
+  getString: function(opchar, opcharLen) {
+    var opcharPos = this._source.indexOf(opchar, this._index + opcharLen);
+
+    if (opcharPos === -1) {
+      throw this.error('Unclosed string literal');
+    }
+    var buf = this._source.slice(this._index + opcharLen, opcharPos);
+
+    var testPos = buf.indexOf('{{');
+    if (testPos !== -1) {
+      return this.getComplexString(opchar, opcharLen);
+    }
+    
+    testPos = buf.indexOf('\\');
+    if (testPos !== -1) {
+      return this.getComplexString(opchar, opcharLen);
+    }
+
+    this._index = opcharPos + opcharLen;
+
+    return [buf, this.isOverlay(buf)];
+  },
+
+
   getAttributes: function() {
     var attrs = Object.create(null);
     var attr, ws1, ch;
@@ -160,8 +347,6 @@ var L20nParser = {
 
     this._index += opcharLen - 1;
 
-    var start = this._index + 1;
-
     walkChars:
     while (true) {
       ch = this._source.charAt(++this._index);
@@ -223,192 +408,6 @@ var L20nParser = {
     return [body, overlay];
   },
 
-  getString: function(opchar, opcharLen) {
-    var opcharPos = this._source.indexOf(opchar, this._index + opcharLen);
-
-    if (opcharPos === -1) {
-      throw this.error('Unclosed string literal');
-    }
-    var buf = this._source.slice(this._index + opcharLen, opcharPos);
-
-    var testPos = buf.indexOf('{{');
-    if (testPos !== -1) {
-      return this.getComplexString(opchar, opcharLen);
-    }
-    
-    testPos = buf.indexOf('\\');
-    if (testPos !== -1) {
-      return this.getComplexString(opchar, opcharLen);
-    }
-
-    this._index = opcharPos + opcharLen;
-
-    return [buf, this.isOverlay(buf)];
-  },
-
-  getValue: function(optional, ch, index) {
-    var val;
-    var overlay = false;
-
-    if (ch === undefined) {
-      ch = this._source.charAt(this._index);
-    }
-    if (ch === '\'' || ch === '"') {
-      val = this.getString(ch, 1);
-      overlay = val[1];
-      val = val[0];
-    } else if (ch === '{') {
-      val = this.getHash();
-    }
-
-    if (val === undefined) {
-      if (!optional) {
-        throw this.error('Unknown value type');
-      }
-      return null;
-    }
-
-    if (index || overlay) {
-      var value = Object.create(null);
-      value.v = val;
-
-      if (index) {
-        value.x = index;
-      }
-      if (overlay) {
-        value.t = 'overlay';
-      }
-      return value;
-    }
-
-    return val;
-  },
-
-  getRequiredWS: function() {
-    var pos = this._index;
-    var cc = this._source.charCodeAt(pos);
-    // space, \n, \t, \r
-    while (cc === 32 || cc === 10 || cc === 9 || cc === 13) {
-      cc = this._source.charCodeAt(++this._index);
-    }
-    return this._index !== pos;
-  },
-
-  getWS: function() {
-    var cc = this._source.charCodeAt(this._index);
-    // space, \n, \t, \r
-    while (cc === 32 || cc === 10 || cc === 9 || cc === 13) {
-      cc = this._source.charCodeAt(++this._index);
-    }
-  },
-
-  getIdentifier: function() {
-    var reId = this._patterns.identifier;
-
-    reId.lastIndex = this._index;
-
-    var match = reId.exec(this._source);
-
-    if (!match ||
-        reId.lastIndex - this._index !== match[0].length) {
-      throw this.error('Identifier has to start with [a-zA-Z_]');
-    }
-
-    this._index = reId.lastIndex;
-
-    return match[0];
-  },
-
-  getComplexId: function() {
-    var reId = this._patterns.complexId;
-    reId.lastIndex = this._index;
-    var match = reId.exec(this._source);
-
-    if (!match ||
-        reId.lastIndex - this._index !== match[0].length) {
-      throw this.error('Identifier has to start with [a-zA-Z_]');
-    }
-
-    this._index = reId.lastIndex;
-    return match[0];
-  },
-
-  getEntity: function(id, index) {
-    var entity = Object.create(null);
-    entity.$i = id;
-
-    if (index) {
-      entity.$x = index;
-    }
-
-    if (!this.getRequiredWS()) {
-      throw this.error('Expected white space');
-    }
-
-    var ch = this._source.charAt(this._index);
-    var value = this.getValue(index === null, ch);
-    var attrs = null;
-    if (value === null) {
-      if (ch === '>') {
-        throw this.error('Expected ">"');
-      }
-      attrs = this.getAttributes();
-    } else {
-      entity.$v = value;
-      var ws1 = this.getRequiredWS();
-      if (this._source.charAt(this._index) !== '>') {
-        if (!ws1) {
-          throw this.error('Expected ">"');
-        }
-        attrs = this.getAttributes();
-      }
-    }
-
-    // skip '>'
-    ++this._index;
-
-    if (attrs) {
-      /* jshint -W089 */
-      for (var key in attrs) {
-        entity[key] = attrs[key];
-      }
-    }
-
-    return entity;
-  },
-
-  getEntry: function() {
-    // 60 === '<'
-    if (this._source.charCodeAt(this._index) === 60) {
-      ++this._index;
-      var id = this.getIdentifier();
-      // 91 == '['
-      if (this._source.charCodeAt(this._index) === 91) {
-        ++this._index;
-        return this.getEntity(id,
-          this.getItemList(this.getExpression.bind(this), ']'));
-      }
-      return this.getEntity(id, null);
-    }
-    throw this.error('Invalid entry');
-  },
-
-  getL20n: function() {
-    var ast = [];
-
-    this.getWS();
-    while (this._index < this._length) {
-      var e = this.getEntry();
-      ast.push(e);
-
-      if (this._index < this._length) {
-        this.getWS();
-      }
-    }
-
-    return ast;
-  },
-
   getExpression: function() {
     var exp = this.getPrimaryExpression();
 
@@ -467,7 +466,9 @@ var L20nParser = {
       ++this._index;
       return [];
     }
+
     var items = [];
+
     while (true) {
       items.push(callback());
       this.getWS();
