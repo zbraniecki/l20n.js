@@ -43,7 +43,7 @@ function print(type, err, data) {
         ast = PropertiesParser.parse(null, data.toString());
         break;
       case 'l20n':
-        ast = L20nParser.parse(null, data.toString());
+        ast = L20nParser.parse(data.toString());
         break;
     }
      
