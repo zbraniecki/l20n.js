@@ -24,9 +24,6 @@ var L20nSerializer = {
         case '$v':
           val = entity.$v;
           break;
-        case '$o':
-          val = entity.$o;
-          break;
         case '$x':
           index = this.dumpIndex(entity.$x);
           break;
@@ -84,7 +81,7 @@ var L20nSerializer = {
     var str = '"';
     for (var i = 0; i < chunks.length; i++) {
       if (typeof chunks[i] === 'string') {
-        str += chunks[i];
+        str += chunks[i].replace(/"/g, '\\"');
       } else {
         str += '{{ ' + this.dumpExpression(chunks[i]) + ' }}';
       }

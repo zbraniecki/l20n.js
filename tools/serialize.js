@@ -41,7 +41,6 @@ function print(type, err, data) {
         var ast = L20nParser.parse(data.toString());
         console.log('----- ORIGINAL -----');
         console.log(data.toString());
-        console.log('--------------------');
         console.log('----- AST -----');
         console.log(JSON.stringify(ast, null, 2));
         console.log('--------------------');
