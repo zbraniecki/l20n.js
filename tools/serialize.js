@@ -6,6 +6,7 @@ var fs = require('fs');
 var program = require('commander');
 
 var L20nSerializer = require('../src/lib/format/l20n/serializer');
+var L20nParser = require('../src/lib/format/l20n/parser');
 
 
 program
@@ -32,7 +33,20 @@ function print(type, err, data) {
   }
   var result;
   try {
-    result = L20nSerializer.serialize(JSON.parse(data));
+    switch (type) {
+      case 'json':
+        result = L20nSerializer.serialize(JSON.parse(data));
+        break;
+      case 'l20n':
+        var ast = L20nParser.parse(data.toString());
+        console.log('----- ORIGINAL -----');
+        console.log(data.toString());
+        console.log('--------------------');
+        console.log('----- AST -----');
+        console.log(JSON.stringify(ast, null, 2));
+        console.log('--------------------');
+        result = L20nSerializer.serialize(ast);
+    }
   } catch (e) {
     logError(e);
   }

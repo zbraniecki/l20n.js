@@ -127,6 +127,8 @@ var L20nParser = {
       if (index) {
         value.x = index;
       }
+      
+      // maybe we should keep the default type and add an additional flag here?
       if (overlay) {
         value.t = 'overlay';
       }

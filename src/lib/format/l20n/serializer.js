@@ -54,6 +54,11 @@ var L20nSerializer = {
     if (value === null) {
       return '';
     }
+
+    // tl;dr - unescaping is a bitch
+    //
+    // we need to figure out the rules so that we can reescape
+    // when we serialize
     if (typeof value === 'string') {
       return this.dumpString(value);
     }
@@ -61,8 +66,8 @@ var L20nSerializer = {
       return this.dumpComplexString(value);
     }
     if (typeof value === 'object') {
-      if (value.$o) {
-        return this.dumpValue(value.$o);
+      if (value.t === 'overlay') {
+        return this.dumpValue(value.v);
       }
       return this.dumpHash(value, depth);
     }
@@ -143,8 +148,21 @@ var L20nSerializer = {
     var items = [];
     var str;
 
+    var defIndex;
+    if ('__default' in hash) {
+      defIndex = hash['__default'];
+    }
+
     for (var key in hash) {
-      str = '  ' + key + ': ' + this.dumpValue(hash[key]);
+      var indent = '  ';
+      if (key.charAt(0) === '_' && key.charAt(1) === '_') {
+        continue;
+      }
+
+      if (key === defIndex) {
+        indent = ' *';
+      }
+      str = indent + key + ': ' + this.dumpValue(hash[key]);
       items.push(str);
     }
 
