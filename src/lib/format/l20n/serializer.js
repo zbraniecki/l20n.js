@@ -47,7 +47,7 @@ var L20nSerializer = {
   },
 
   dumpIdentifier: function(id) {
-    return id.replace(/-/g, '_');
+    return id;
   },
 
   dumpValue: function(value, depth) {
@@ -95,9 +95,9 @@ var L20nSerializer = {
   dumpAttributes: function(attrs) {
     var str = '';
     for (var key in attrs) {
-      if (attrs[key].$x) {
-        str += '  ' + key + this.dumpIndex(attrs[key].$x) + ': ' +
-          this.dumpValue(attrs[key].$v, 1) + '\n';
+      if (attrs[key].x) {
+        str += '  ' + key + this.dumpIndex(attrs[key].x) + ': ' +
+          this.dumpValue(attrs[key].v, 1) + '\n';
       } else {
         str += '  ' + key + ': ' + this.dumpValue(attrs[key], 1) + '\n';
       }
@@ -162,18 +162,20 @@ var L20nSerializer = {
       if (key === defIndex) {
         indent = ' *';
       }
-      str = indent + key + ': ' + this.dumpValue(hash[key]);
+      str = indent + key + ': ' + this.dumpValue(hash[key], depth + 1);
       items.push(str);
     }
 
-    var indent = depth ? '  ' : ''; 
+    var indent = Array(depth + 1).join('  '); // str.repeat
     return '{\n' + indent + items.join(',\n' + indent) + '\n'+indent+'}';
   },
 
   dumpItemList: function(itemList, cb) {
-    var ret = '';
-
     return itemList.map(cb).join(', ');
+  },
+
+  dumpIndex: function(index) {
+    return '[' + this.dumpItemList(index, this.dumpExpression.bind(this)) + ']';
   },
 };
 
