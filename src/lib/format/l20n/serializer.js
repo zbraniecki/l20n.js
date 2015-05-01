@@ -11,6 +11,18 @@ var L20nSerializer = {
     return string;
   },
 
+  serializeString: function(ast) {
+    string = '';
+
+    if (typeof(ast) === 'object') {
+      string += this.dumpValue(ast, 0);
+    } else {
+      string += this.dumpString(ast);
+    }
+
+    return string;
+  },
+
   dumpEntry: function(entry) {
     return this.dumpEntity(entry);
   },

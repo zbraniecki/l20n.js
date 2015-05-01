@@ -14,12 +14,28 @@ var L20nParser = {
     identifier: /[A-Za-z_]\w*/g
   },
 
-  parse: function (string) {
+  parse: function(string) {
     this._source = string;
     this._index = 0;
     this._length = this._source.length;
 
     return this.getL20n();
+  },
+
+  parseString: function(string) {
+    this._source = string;
+    this._index = 0;
+    this._length = this._source.length;
+
+    var astAndOverlay = this.getString(string.charAt(0), 1);
+
+    if (astAndOverlay[1]) {
+      var ret = Object.create(null);
+      ret.v = astAndOverlay[0];
+      ret.t = 'overlay';
+      return ret;
+    }
+    return astAndOverlay[0];
   },
 
   getL20n: function() {
