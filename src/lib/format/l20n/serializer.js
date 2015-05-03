@@ -116,11 +116,21 @@ var L20nSerializer = {
   },
 
   dumpExpression: function(exp) {
-    if (exp.t === 'call') {
-      return this.dumpCallExpression(exp);
+    switch (exp.t) {
+      case 'call':
+        return this.dumpCallExpression(exp);
+      case 'prop':
+        return this.dumpPropertyExpression(exp);
     }
 
     return this.dumpPrimaryExpression(exp);
+  },
+
+  dumpPropertyExpression: function(exp) {
+    var prop = this.dumpExpression(exp.p);
+    var idref = this.dumpExpression(exp.e);
+
+    return idref + '[' + prop + ']';
   },
 
   dumpCallExpression: function(exp) {

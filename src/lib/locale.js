@@ -83,7 +83,7 @@ Locale.prototype.build = function L_build(callback) {
 
   function onL20nLoaded(err, source) {
     if (!err && source) {
-      var ast = L20nParser.parse(ctx, source);
+      var ast = L20nParser.parse(source);
       self.addAST(ast);
     }
     onL10nLoaded(err);

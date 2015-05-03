@@ -428,15 +428,37 @@ var L20nParser = {
 
   getExpression: function() {
     var exp = this.getPrimaryExpression();
+    var cc;
+
+    var cc = this._source.charCodeAt(this._index);
+
+    if (cc === 91) { // [
+      ++this._index;
+      exp = this.getPropertyExpression(exp);
+    } else if (cc === 40) { // (
+      ++this._index;
+      exp = this.getCallExpression(exp);
+    }
+
+    return exp;
+  },
+
+  getPropertyExpression: function(idref) {
+    this.getWS();
+
+    var exp = this.getExpression();
 
     this.getWS();
 
-    if (this._source.charAt(this._index) === '(') {
-      this._index++;
-      return this.getCallExpression(exp);
+    if (this._source.charAt(this._index) !== ']') {
+      throw this.error('Expected "]"');
     }
-    
-    return exp;
+    ++this._index;
+    return {
+      t: 'prop',
+      e: idref,
+      p: exp
+    };
   },
 
   getCallExpression: function(callee) {
