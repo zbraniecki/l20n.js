@@ -90,6 +90,8 @@ function resolveExpression(view, lang, args, exp) {
       return resolveVariable(view, lang, args, exp.v);
     case 'glob':
       return resolveGlobal(view, lang, args, exp.v);
+    case 'prop':
+      return resolveProperty(view, lang, args, exp);
     case 'call':
       var idref = resolveExpression(view, lang, args, exp.v);
       var a = [];
@@ -135,6 +137,16 @@ function resolveIdentifier(view, lang, args, id) {
   }
 
   throw new L10nError('Unknown reference: ' + id);
+}
+
+function resolveProperty(view, lang, args, exp) {
+  var entity = view._getEntity(lang, exp.e.v);
+
+  entity.index = [exp.p];
+
+  if (entity) {
+    return format(view, args, entity);
+  }
 }
 
 function subPlaceable(view, lang, args, exp) {
@@ -203,6 +215,9 @@ function resolveValue(locals, view, lang, args, expr, index) {
   if (index) {
     // try to use the index in order to select the right dict member
     var selector = resolveExpression(view, lang, args, index[0]);
+    if (Array.isArray(selector)) {
+      selector = selector[1];
+    }
     if (selector in expr) {
       return resolveValue(locals, view, lang, args, expr[selector]);
     }
