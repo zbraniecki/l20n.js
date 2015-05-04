@@ -44,6 +44,7 @@ Env.prototype.destroyView = function(view) {
 
 const parsers = {
   properties: PropertiesParser.parse.bind(PropertiesParser, null),
+  l20n: L20nParser.parse.bind(L20nParser),
   json: null
 };
 

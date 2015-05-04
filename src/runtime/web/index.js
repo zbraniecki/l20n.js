@@ -19,7 +19,8 @@ function init() {
 
   navigator.mozL10n.languages = additionalLangs.then(
     additionalLangs => getSupportedLanguages(
-      meta, additionalLangs, navigator.languages));
+      meta, additionalLangs, navigator.languages)).catch(
+      () => getSupportedLanguages(meta, {}, navigator.languages));
   navigator.mozL10n.languagesSources = getLanguageSources(
     meta, additionalLangs);
 
