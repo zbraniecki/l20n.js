@@ -84,23 +84,31 @@ function format(view, args, entity) {
 
 function resolveExpression(view, lang, args, exp) {
   switch (exp.t) {
-    case 'glob':
+    case 'id':
       return resolveIdentifier(view, lang, args, exp.v);
+    case 'var':
+      return resolveVariable(view, lang, args, exp.v);
+    case 'glob':
+      return resolveGlobal(view, lang, args, exp.v);
     case 'call':
       var idref = resolveExpression(view, lang, args, exp.v);
       var a = [];
       for (var i in exp.a) {
-        a.push(resolveIdentifier(view, lang, args, exp.a[i].v));
+        a.push(resolveExpression(view, lang, args, exp.a[i]));
       }
       return idref[1](a[0][1]);
   }
 }
 
-function resolveIdentifier(view, lang, args, id) {
+function resolveGlobal(view, lang, args, id) {
   if (KNOWN_MACROS.indexOf(id) > -1) {
     return [{}, view._getMacro(lang, id)];
   }
 
+  throw new L10nError('Unknown reference: ' + id);
+}
+
+function resolveVariable(view, lang, args, id) {
   if (args && args.hasOwnProperty(id)) {
     if (typeof args[id] === 'string' || (typeof args[id] === 'number' &&
         !isNaN(args[id]))) {
@@ -110,6 +118,10 @@ function resolveIdentifier(view, lang, args, id) {
     }
   }
 
+  throw new L10nError('Unknown reference: ' + id);
+}
+
+function resolveIdentifier(view, lang, args, id) {
   // XXX: special case for Node.js where still:
   // '__proto__' in Object.create(null) => true
   if (id === '__proto__') {
@@ -125,13 +137,13 @@ function resolveIdentifier(view, lang, args, id) {
   throw new L10nError('Unknown reference: ' + id);
 }
 
-function subPlaceable(view, lang, args, id) {
+function subPlaceable(view, lang, args, exp) {
   var res;
 
   try {
-    res = resolveIdentifier(view, lang, args, id);
+    res = resolveExpression(view, lang, args, exp);
   } catch (err) {
-    return [{ error: err }, '{{ ' + id + ' }}'];
+    return [{ error: err }, '{{ ' + exp + ' }}'];
   }
 
   var value = res[1];
@@ -150,15 +162,15 @@ function subPlaceable(view, lang, args, id) {
     return res;
   }
 
-  return [{}, '{{ ' + id + ' }}'];
+  return [{}, '{{ ' + exp + ' }}'];
 }
 
 function interpolate(locals, view, lang, args, arr) {
   return arr.reduce(function(prev, cur) {
     if (typeof cur === 'string') {
       return [prev[0], prev[1] + cur];
-    } else if (cur.t === 'idOrVar'){
-      var placeable = subPlaceable(view, lang, args, cur.v);
+    } else {
+      var placeable = subPlaceable(view, lang, args, cur);
       if (placeable[0].overlay) {
         prev[0].overlay = true;
       }
