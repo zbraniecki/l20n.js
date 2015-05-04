@@ -1,0 +1,272 @@
+= L20n JSON AST =
+
+== General Approach ==
+
+L20n's AST is considered both memory and performance sensitive. The authors
+are striving for balance between fast parsing times and simple/small ASTs.
+
+Second observation from the use cases is that in common scenarios vast majority
+of L20n entries are very simple. We want to optimize for quick parsing, fast
+runtime operations (L20n's Resolver) and small AST size for simple entities.
+
+Three common cases of simple entities are:
+
+1) Entities that contain only a value
+2) Entities that contain only one or two attributes, often without a value
+3) Complex Strings that contain a single id or variable expression.
+
+Our primary targets are runtime parsing, where parsing time is crucial and
+we want to aim at creating the AST quickly and helping the runtime execution
+environment resolve entities as fast as possible.
+
+On the other hand we expect that systems may want to to cache the AST and
+store it in runtime memory, so the simpler and smaller we can make it,
+the smaller the memory footprint and reading-from-cache time will be.
+
+At this point we have three primary consumers we are targeting for:
+
+1) Runtime environment
+2) Serializer
+3) Editors
+
+So far, most of the effort went into
+optimizing the AST for runtime environments and we need put more effort
+to cater to the needs of serializers (unescaping, string delimiters etc.) and
+editors (node position annotations, sources etc.).
+
+== Root Node ==
+
+L20n AST's root node is a JSON `array` of L20n `entries`.
+
+== L20n Entry ==
+
+At this point the only type of an L20n `entry` is an L20n `entity`.
+In the future we expect to have L20n `comment`, `macro`, `statement` and other
+entry types be added.
+
+== L20n Entity ==
+
+An L20n `entity` is a JSON `object` that contains the following fields:
+
+ - $i - id
+ - $x - index (optional)
+ - $v - value (optional)
+ - attributes (optional)
+
+An `id` is of L20n type `identifier`.
+An `index` is a JSON `array` of L20n `expressions`.
+A `value` is of L20n type `value`.
+
+All other keys in the object are L20n `attributes` and their values are of 
+L20n type `value`.
+
+Examples:
+
+L20n: <entity1 "value">
+AST: {"$i": "entity1", "$v": "value"}
+
+L20n: <entity1 placeholder: "foo">
+AST: {"$i": "entity1", "placeholder": "foo"}
+
+== L20n Identifier ==
+
+An `identifier` is a JSON `string` starting with a letter or an underscore
+followed by any alphanumerical characters.
+
+== L20n Value ==
+
+An L20n `value` is a JSON `object` with the following fields:
+
+ - t - type
+ - v - value
+ - x - index
+
+Type is a string of type 'string', 'hash' or 'overlay'.
+
+Optimization: At this point if the string doesn't contain that field,
+the consumer is expected to derive the type from the type of the 'v' field.
+
+If it's a JSON `object`, the value is a hash, if it's a JSON `string`,
+the value is a string.
+
+Type `overlay` should be treated like a `string` in most cases. The only
+difference is that we expect the value to be semantically meaningful in 
+the context of the language the L20n is used in.
+For example: in the Web environment, overlay is expected to contain HTML.
+
+Optimization: If the value does not contain an index nor type, it will be
+simplified to it's 'v' field.
+
+Examples:
+Full L20n: {"t": "string", "v": "Hello world"}
+Optimized: "Hello world"
+
+Full L20n: {"t": "hash", "v": {"one": {"t": "string", "v": "One"}}}
+Optimized: {"one": "One"}
+
+This optimization is used to simplify the AST
+
+== L20n String ==
+
+An L20n `string` is represented in AST as either a JSON `string` or
+a JSON `array`.
+
+By default, the L20n `string` corresponds to JSON `string` directly.
+
+Optimization: If the L20n `string` contains L20n `expanders`, the parser
+chunks the L20n `string` into an array of JSON `strings` and
+L20n `expressions`.
+
+Examples:
+
+L20n: "foo"
+JSON: "foo"
+
+L20n: 'foo'
+JSON: "foo"
+
+L20n: "My name is {{ $name }}"
+JSON: ["My name is ", {"t": "var", "v": "name"}]
+
+L20n unescapes:
+
+1) escaped unicode:
+
+L20n: "Hi \ua0a0\u9876"
+JSON: "Hi ਊ顶"
+
+2) string closing characters:
+
+L20n: "Hi \" Ho"
+JSON: "Hi \" Ho" // The string actually doesn't contain a backslash
+
+L20n: 'Hi \' Ho'
+JSON: "Hi ' Ho"
+
+3) Expander opener:
+
+L20n: "Hi \{{ $var }}"
+JSON: "Hi {{ $var }}"
+
+At this point other unescapings are considered, like "\n", or "\t", but no
+decisions have been made.
+
+== L20n Hash ==
+
+An L20n `hash` is represented as a JSON `object`.
+
+Each key-value-pair contains
+
+ - A key of L20n type `identifier`
+ - A value of L20n type 'value'
+
+Additionally, there may be an optional key '__default'
+with an identifier value that corresponds to the hash option
+that is used as a default one for this hash.
+
+Example:
+
+L20n: {one: "One", *many: "Many"}
+JSON: {"one: "One", "many": "Many", "__default": "many"}
+
+== L20n Index ==
+
+An L20n `index` is represented as a JSON `array` of L20n `expressions`.
+
+== L20n Expression ==
+
+An L20n `expression` is represented as a JSON `object` with only
+one field denoting the type of the expression - 't'.
+
+Type may be:
+
+ - id - `IdentifierExpression`
+ - var - `VariableExpression`
+ - glob - `GlobalExpression`
+ - call - `CallExpression`
+ - prop - `PropertyExpression`
+
+Other fields are specific to the type of the expression.
+
+== L20n IdentifierExpression ==
+
+ - t: 'id'
+ - v: L20n `identifier`
+
+Example:
+
+L20n: name
+JSON: {"t": "id", "v": "name"}
+
+== L20n VariableExpression ==
+
+ - t: 'var'
+ - v: L20n `complexId`
+
+Example:
+
+L20n: $var
+JSON: {"t": "var", "v": "var"}
+
+Optimization: Currently we are supporting a temporary structure, `complexId`,
+that contains one or more L20n `identifiers` separated by "." sign.
+
+The reason for that is that we want to introduce proper namespaces before
+we will introduce full property expression syntax.
+
+Example:
+
+L20n: $user.name
+JSON: {"t": "var", "v": "user.name"
+
+== L20n GlobalExpression ==
+
+ - t: 'glob'
+ - v: L20n `complexId`
+
+Example:
+
+L20n: @os
+JSON: {"t": "glob", "v": "os"}
+
+Optimization: Same as for VariableExpression, the current value uses
+complexId to represent namespaced references.
+
+Example:
+
+L20n: @cldr.plural
+JSON: {"t": "glob", "v": "cldr.plural"}
+
+== L20n PrimaryExpression ==
+
+One of the `identifierExpression`, `variableExpression` or `globalExpression`
+
+== L20n PropertyExpression ==
+
+ - t: 'prop'
+ - e: L20n `primaryExpression`
+ - p: L20n `expression`
+
+Example:
+
+L20n: sizeUnits[$unit]
+JSON: {"t": "prop",
+       "e": {"t": "id", "v": "sizeUnits"},
+       "p": {"t": "var": "v": "unit"}}
+
+Optimization: Currently we do not support non-computer properties (x.y), just
+computed form (x[y]).
+
+== L20n CallExpression ==
+
+ - t: 'call'
+ - v: L20n `expression`
+ - a: JSON `array` of L20n `expressions`
+
+Example:
+
+L20n: @i18n.formatDate($d, shortDateFormat)
+JSON: {"t": "call", 
+       "v": {"t": "glob", "v": "i18n.formatDate"},
+       "a": [{"t": "var", "v": "d"}, {"t": "id", "v": "shortDateFormat"}]
+
