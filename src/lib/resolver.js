@@ -2,7 +2,7 @@
 
 import { L10nError } from './errors';
 
-var KNOWN_MACROS = ['plural'];
+var KNOWN_MACROS = ['cldr.plural'];
 var MAX_PLACEABLE_LENGTH = 2500;
 var rePlaceables = /\{\{\s*(.+?)\s*\}\}/g;
 
@@ -82,6 +82,20 @@ function format(view, args, entity) {
   return rv;
 }
 
+function resolveExpression(view, lang, args, exp) {
+  switch (exp.t) {
+    case 'glob':
+      return resolveIdentifier(view, lang, args, exp.v);
+    case 'call':
+      var idref = resolveExpression(view, lang, args, exp.v);
+      var a = [];
+      for (var i in exp.a) {
+        a.push(resolveIdentifier(view, lang, args, exp.a[i].v));
+      }
+      return idref[1](a[0][1]);
+  }
+}
+
 function resolveIdentifier(view, lang, args, id) {
   if (KNOWN_MACROS.indexOf(id) > -1) {
     return [{}, view._getMacro(lang, id)];
@@ -153,34 +167,6 @@ function interpolate(locals, view, lang, args, arr) {
   }, [locals, '']);
 }
 
-function resolveSelector(view, lang, args, expr, index) {
-    var selectorName = index[0].v;
-    var selector = resolveIdentifier(view, lang, args, selectorName)[1];
-
-    if (typeof selector !== 'function') {
-      // selector is a simple reference to an entity or args
-      return selector;
-    }
-
-    var argValue = index[1] ?
-      resolveIdentifier(view, lang, args, index[1])[1] : undefined;
-
-    if (selector === view._getMacro(lang, 'plural')) {
-      // special cases for zero, one, two if they are defined on the hash
-      if (argValue === 0 && 'zero' in expr) {
-        return 'zero';
-      }
-      if (argValue === 1 && 'one' in expr) {
-        return 'one';
-      }
-      if (argValue === 2 && 'two' in expr) {
-        return 'two';
-      }
-    }
-
-    return selector(argValue);
-}
-
 function resolveValue(locals, view, lang, args, expr, index) {
   if (!expr) {
     return [locals, expr];
@@ -204,8 +190,8 @@ function resolveValue(locals, view, lang, args, expr, index) {
   // otherwise, it's a dict
   if (index) {
     // try to use the index in order to select the right dict member
-    var selector = resolveSelector(view, lang, args, expr, index);
-    if (expr.hasOwnProperty(selector)) {
+    var selector = resolveExpression(view, lang, args, index[0]);
+    if (selector in expr) {
       return resolveValue(locals, view, lang, args, expr[selector]);
     }
   }

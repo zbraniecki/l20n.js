@@ -123,7 +123,7 @@ View.prototype._getEntity = function(lang, id) {
 // with regular entities and this method will not be needed anymore
 View.prototype._getMacro = function(lang, id) {
   switch(id) {
-    case 'plural':
+    case 'cldr.plural':
       return getPluralRule(lang);
     default:
       return undefined;

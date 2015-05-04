@@ -1,1 +1,7 @@
-<hello "Test">
+<hello[@cldr.plural($n)] {
+  one: "Test",
+  other: "Test Other"
+}>
+
+<title "Title">
+<name placeholder: "Name">

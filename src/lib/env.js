@@ -4,7 +4,7 @@
 
 import View from './view';
 import Resolver from './resolver';
-import PropertiesParser from './format/properties/parser';
+import L20nParser from './format/l20n/parser';
 import debug from './debug';
 
 export default function Env(fetch, id) {
@@ -43,7 +43,6 @@ Env.prototype.destroyView = function(view) {
 };
 
 const parsers = {
-  properties: PropertiesParser.parse.bind(PropertiesParser, null),
   l20n: L20nParser.parse.bind(L20nParser),
   json: null
 };
