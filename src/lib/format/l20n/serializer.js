@@ -127,14 +127,21 @@ var L20nSerializer = {
   },
 
   dumpPropertyExpression: function(exp) {
+    if (exp.c) {
+      var prop = this.dumpExpression(exp.p);
+      var idref = this.dumpExpression(exp.e);
+
+      return idref + '[' + prop + ']';
+    }
+
     var prop = this.dumpExpression(exp.p);
     var idref = this.dumpExpression(exp.e);
 
-    return idref + '[' + prop + ']';
+    return idref + '.' + prop;
   },
 
   dumpCallExpression: function(exp) {
-    var pexp = this.dumpPrimaryExpression(exp.v);
+    var pexp = this.dumpExpression(exp.v);
 
     var attrs = this.dumpItemList(exp.a, this.dumpExpression.bind(this));
     pexp += '(' + attrs + ')';
@@ -143,6 +150,10 @@ var L20nSerializer = {
 
   dumpPrimaryExpression: function(exp) {
     var ret = '';
+
+    if (typeof(exp) === 'string') {
+      return exp;
+    }
 
     switch (exp.t) {
       case 'glob':

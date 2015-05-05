@@ -10,7 +10,6 @@ var L20nParser = {
   _length: null,
 
   _patterns: {
-    complexId: /[A-Za-z_][\w\.]*/g,
     identifier: /[A-Za-z_]\w*/g
   },
 
@@ -186,20 +185,6 @@ var L20nParser = {
 
     this._index = reId.lastIndex;
 
-    return match[0];
-  },
-
-  getComplexId: function() {
-    var reId = this._patterns.complexId;
-    reId.lastIndex = this._index;
-    var match = reId.exec(this._source);
-
-    if (!match ||
-        reId.lastIndex - this._index !== match[0].length) {
-      throw this.error('Identifier has to start with [a-zA-Z_]');
-    }
-
-    this._index = reId.lastIndex;
     return match[0];
   },
 
@@ -430,34 +415,42 @@ var L20nParser = {
     var exp = this.getPrimaryExpression();
     var cc;
 
-    var cc = this._source.charCodeAt(this._index);
-
-    if (cc === 91) { // [
-      ++this._index;
-      exp = this.getPropertyExpression(exp);
-    } else if (cc === 40) { // (
-      ++this._index;
-      exp = this.getCallExpression(exp);
+    while (true) {
+      cc = this._source.charCodeAt(this._index);
+      if (cc === 46 || cc === 91) { // . or [
+        ++this._index;
+        exp = this.getPropertyExpression(exp, cc === 91);
+      } else if (cc === 40) { // (
+        ++this._index;
+        exp = this.getCallExpression(exp);
+      } else {
+        break;
+      }
     }
+
 
     return exp;
   },
 
-  getPropertyExpression: function(idref) {
-    this.getWS();
-
-    var exp = this.getExpression();
-
-    this.getWS();
-
-    if (this._source.charAt(this._index) !== ']') {
-      throw this.error('Expected "]"');
+  getPropertyExpression: function(idref, computed) {
+    var exp;
+    if (computed) {
+      this.getWS();
+      exp = this.getExpression();
+      this.getWS();
+      if (this._source.charAt(this._index) !== ']') {
+        throw this.error('Expected "]"');
+      }
+      ++this._index;
+    } else {
+      exp = this.getIdentifier();
     }
-    ++this._index;
+
     return {
       t: 'prop',
       e: idref,
-      p: exp
+      p: exp,
+      c: computed
     };
   },
 
@@ -482,13 +475,13 @@ var L20nParser = {
       case 36:
         ++this._index;
         prim.t = 'var';
-        prim.v = this.getComplexId();
+        prim.v = this.getIdentifier();
         break;
       // global: @
       case 64:
         ++this._index;
         prim.t = 'glob';
-        prim.v = this.getComplexId();
+        prim.v = this.getIdentifier();
         break;
       default:
         prim.t = 'id';
