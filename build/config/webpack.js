@@ -15,9 +15,6 @@ module.exports = {
       libraryTarget: 'this',
 
     },
-    externals: {
-      'querystring': 'var window'
-    },
     module: {
       loaders: [{ 
         test: /\.js$/,
