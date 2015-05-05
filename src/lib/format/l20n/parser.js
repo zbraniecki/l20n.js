@@ -455,7 +455,7 @@ var L20nParser = {
     prop.e = idref;
     prop.p = exp;
     prop.c = computed;
-    return p;
+    return prop;
   },
 
   getCallExpression: function(callee) {
