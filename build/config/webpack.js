@@ -34,7 +34,6 @@ module.exports = {
       libraryTarget: 'commonjs2',
     },
     externals: {
-      'querystring': true,
       'fs': true
     },
     module: {
