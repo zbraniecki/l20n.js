@@ -3,6 +3,7 @@
 import { L10nError } from './errors';
 import Resolver from './resolver';
 import getPluralRule from './plurals';
+import localeFormat from './globals'; 
 import debug from './debug';
 
 export default function View(env, resIds) {
@@ -125,6 +126,8 @@ View.prototype._getMacro = function(lang, id) {
   switch(id) {
     case 'cldr.plural':
       return getPluralRule(lang);
+    case 'i18n.localeFormat':
+      return localeFormat;
     default:
       return undefined;
   }

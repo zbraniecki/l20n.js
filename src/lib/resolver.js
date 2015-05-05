@@ -2,7 +2,7 @@
 
 import { L10nError } from './errors';
 
-var KNOWN_MACROS = ['cldr.plural'];
+var KNOWN_MACROS = ['cldr.plural', 'i18n.localeFormat'];
 var MAX_PLACEABLE_LENGTH = 2500;
 var rePlaceables = /\{\{\s*(.+?)\s*\}\}/g;
 
@@ -94,11 +94,11 @@ function resolveExpression(view, lang, args, exp) {
       return resolveProperty(view, lang, args, exp);
     case 'call':
       var idref = resolveExpression(view, lang, args, exp.v);
-      var a = [];
+      var a = [resolveIdentifier.bind(this, view, lang, args)];
       for (var i in exp.a) {
-        a.push(resolveExpression(view, lang, args, exp.a[i]));
+        a.push(resolveExpression(view, lang, args, exp.a[i])[1]);
       }
-      return idref[1](a[0][1]);
+      return idref[1].apply(idref[1], a);
   }
 }
 
