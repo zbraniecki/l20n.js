@@ -355,10 +355,13 @@ var L20nParser = {
       switch (ch) {
         case '\\':
           var ch2 = this._source.charAt(++this._index);
-          if (ch2 === 'u' || ch2 === opchar) {
+          if (ch2 === 'u' ||
+              ch2 === opchar ||
+              ch2 === '\\' ||
+              (ch2 === '{' && this._source.charAt(this._index + 1) === '{')) {
             buf += this.unescapeString(ch2);
           } else {
-            buf += ch2;
+            buf += ch + ch2;
           }
           break;
         case '{':

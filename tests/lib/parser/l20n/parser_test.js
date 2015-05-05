@@ -97,12 +97,17 @@ describe('L10n Parser', function() {
 
     it('single singlequote escape in the middle of a word', function() {
       var ast = parse( '<id "str\\\'ing">');
-      assert.strictEqual(ast[0].$v, 'str\'ing');
+      assert.strictEqual(ast[0].$v, 'str\\\'ing');
     });
 
     it('escape a placeable', function() {
       var ast = parse( '<id "test \\{{ \\\"more\\\" }}">');
       assert.strictEqual(ast[0].$v, 'test {{ "more" }}');
+    });
+
+    it('escape on a second opchar of a placeable', function() {
+      var ast = parse( '<id "test {\\{ var }}">');
+      assert.strictEqual(ast[0].$v, 'test {\\{ var }}');
     });
 
     it('double escape before placeable', function() {
@@ -123,7 +128,7 @@ describe('L10n Parser', function() {
 
     it('escape a letter', function() {
       var ast = parse( '<id "test \\a more">');
-      assert.strictEqual(ast[0].$v, 'test a more');
+      assert.strictEqual(ast[0].$v, 'test \\a more');
     });
 
     it('double escape at the end', function() {
