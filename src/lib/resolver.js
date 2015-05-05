@@ -218,6 +218,10 @@ function resolveValue(locals, view, lang, args, expr, index) {
     if (Array.isArray(selector)) {
       selector = selector[1];
     }
+
+    if (typeof(selector) === 'function') {
+      selector = selector();
+    }
     if (selector in expr) {
       return resolveValue(locals, view, lang, args, expr[selector]);
     }

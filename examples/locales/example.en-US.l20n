@@ -19,7 +19,7 @@
  *other: '{{ $emailsNum }} unread emails'
 }>
 
-<shutdownMsg[@gaia.formFactor()] {
+<shutdownMsg[@gaia.formFactor] {
   phone: 'Turn off your phone',
   tv: 'Turn off your TV',
  *other: 'Turn off your device'
