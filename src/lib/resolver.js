@@ -220,7 +220,7 @@ function resolveValue(locals, view, lang, args, expr, index) {
     }
 
     if (typeof(selector) === 'function') {
-      selector = selector();
+      selector = selector()[1];
     }
     if (selector in expr) {
       return resolveValue(locals, view, lang, args, expr[selector]);
@@ -228,8 +228,8 @@ function resolveValue(locals, view, lang, args, expr, index) {
   }
 
   // if there was no index or no selector was found, try 'other'
-  if ('other' in expr) {
-    return resolveValue(locals, view, lang, args, expr.other);
+  if ('__default' in expr) {
+    return resolveValue(locals, view, lang, args, expr[expr.__default]);
   }
 
   // XXX Specify entity id
