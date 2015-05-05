@@ -2,7 +2,7 @@
 
 import { L10nError } from './errors';
 
-var KNOWN_MACROS = ['cldr.plural', 'i18n.localeFormat'];
+var KNOWN_MACROS = ['cldr.plural', 'i18n.localeFormat', 'gaia.formFactor'];
 var MAX_PLACEABLE_LENGTH = 2500;
 var rePlaceables = /\{\{\s*(.+?)\s*\}\}/g;
 

@@ -1,7 +1,27 @@
-<hello[@cldr.plural($n)] {
-  one: "Test",
-  other: "Test Other"
+<time_am "am">
+<time_pm "pm">
+
+<shortDateFormat "%I:%M %p">
+<shortDateTimeFormat "%x %I:%M %p">
+
+<todayIs "Today is {{ @i18n.localeFormat($d, shortDateTimeFormat) }}">
+
+<byteUnit {
+  B: 'Bytes',
+  KB: 'KB',
 }>
 
-<title "Title">
-<name placeholder: "Name">
+<appSize "App size: {{ $size }} {{ byteUnit[$unit] }}">
+
+<unreadEmails[@cldr.plural($emailsNum)] {
+  zero: 'Zero unread emails',
+  one: 'One unread email',
+ *other: '{{ $emailsNum }} unread emails'
+}>
+
+<shutdownMsg[@gaia.formFactor()] {
+  phone: 'Turn off your phone',
+  tv: 'Turn off your TV',
+ *other: 'Turn off your device'
+}>
+

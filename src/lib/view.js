@@ -3,7 +3,8 @@
 import { L10nError } from './errors';
 import Resolver from './resolver';
 import getPluralRule from './plurals';
-import localeFormat from './globals'; 
+import localeFormat from './localeFormat'; 
+import formFactor from './formFactor'; 
 import debug from './debug';
 
 export default function View(env, resIds) {
@@ -128,6 +129,8 @@ View.prototype._getMacro = function(lang, id) {
       return getPluralRule(lang);
     case 'i18n.localeFormat':
       return localeFormat;
+    case 'gaia.formFactor':
+      return formFactor;
     default:
       return undefined;
   }
