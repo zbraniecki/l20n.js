@@ -47,17 +47,19 @@ export default function localeFormat(formatValueSync, d, format) {
       case '%x':
       case '%X':
         // ensure the localized format string doesn't contain any %c|%x|%X
-        var tmp = 'dateTimeFormat_' + tokens[i];
-        if (tmp && !(/(%c|%x|%X)/).test(tmp)) {
-          value = localeFormat(d, tmp);
+        var tmp = formatValueSync('dateTimeFormat_' + tokens[i][1])[1];
+        if (tmp && !/(%c|%x|%X)/.test(tmp)) {
+          value = localeFormat(formatValueSync, d, tmp);
         }
         break;
 
-      // other tokens don't require any localization
+        // other tokens don't require any localization
     }
 
-    if (typeof(value) === 'string' && value.length > 0) {
+    if (typeof value === 'string' && value.length > 0) {
       value = formatValueSync(value)[1];
+    } else if (Array.isArray(value)) {
+      value = value[1];
     }
 
     format = format.replace(tokens[i], value || d.toLocaleFormat(tokens[i]));
