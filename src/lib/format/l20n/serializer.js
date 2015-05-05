@@ -127,16 +127,14 @@ var L20nSerializer = {
   },
 
   dumpPropertyExpression: function(exp) {
+    var idref = this.dumpExpression(exp.e);
+
     if (exp.c) {
       var prop = this.dumpExpression(exp.p);
-      var idref = this.dumpExpression(exp.e);
-
       return idref + '[' + prop + ']';
     }
 
-    var prop = this.dumpExpression(exp.p);
-    var idref = this.dumpExpression(exp.e);
-
+    var prop = this.dumpIdentifier(exp.p);
     return idref + '.' + prop;
   },
 
