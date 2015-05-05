@@ -148,6 +148,11 @@ JSON: "Hi ' Ho"
 L20n: "Hi \{{ $var }}"
 JSON: "Hi {{ $var }}"
 
+4) Escape char:
+
+L20n: "Hi \\ World"
+JSON: "Hi \ World"
+
 At this point other unescapings are considered, like "\n", or "\t", but no
 decisions have been made.
 
@@ -201,41 +206,22 @@ JSON: {"t": "id", "v": "name"}
 == L20n VariableExpression ==
 
  - t: 'var'
- - v: L20n `complexId`
+ - v: L20n `identifier`
 
 Example:
 
 L20n: $var
 JSON: {"t": "var", "v": "var"}
 
-Optimization: Currently we are supporting a temporary structure, `complexId`,
-that contains one or more L20n `identifiers` separated by "." sign.
-
-The reason for that is that we want to introduce proper namespaces before
-we will introduce full property expression syntax.
-
-Example:
-
-L20n: $user.name
-JSON: {"t": "var", "v": "user.name"
-
 == L20n GlobalExpression ==
 
  - t: 'glob'
- - v: L20n `complexId`
+ - v: L20n `identifier`
 
 Example:
 
 L20n: @os
 JSON: {"t": "glob", "v": "os"}
-
-Optimization: Same as for VariableExpression, the current value uses
-complexId to represent namespaced references.
-
-Example:
-
-L20n: @cldr.plural
-JSON: {"t": "glob", "v": "cldr.plural"}
 
 == L20n PrimaryExpression ==
 
@@ -246,16 +232,21 @@ One of the `identifierExpression`, `variableExpression` or `globalExpression`
  - t: 'prop'
  - e: L20n `primaryExpression`
  - p: L20n `expression`
+ - c: computed
 
 Example:
 
 L20n: sizeUnits[$unit]
 JSON: {"t": "prop",
        "e": {"t": "id", "v": "sizeUnits"},
-       "p": {"t": "var": "v": "unit"}}
+       "p": {"t": "var": "v": "unit"},
+       "c": true}
 
-Optimization: Currently we do not support non-computer properties (x.y), just
-computed form (x[y]).
+L20n: @gaia.formFactor
+JSON: {"t": "prop",
+       "e": {"t": "glob", "v": "gaia"},
+       "p": {"t": "id", "v": "formFactor"},
+       "c": false}
 
 == L20n CallExpression ==
 
@@ -265,8 +256,8 @@ computed form (x[y]).
 
 Example:
 
-L20n: @i18n.formatDate($d, shortDateFormat)
+L20n: @formatDate($d, shortDateFormat)
 JSON: {"t": "call", 
-       "v": {"t": "glob", "v": "i18n.formatDate"},
+       "v": {"t": "glob", "v": "formatDate"},
        "a": [{"t": "var", "v": "d"}, {"t": "id", "v": "shortDateFormat"}]
 
