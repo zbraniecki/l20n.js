@@ -421,14 +421,18 @@ describe('L10n Parser', function() {
 
     it('complex id', function() {
       var ast = parse( '<id[@gaia.formFactor] "foo">');
-      assert.deepEqual(ast[0].$x, [{t: 'glob', v: 'gaia.formFactor'}]);
+      assert.strictEqual(ast[0].$x[0].t, 'prop');
+      assert.deepEqual(ast[0].$x[0].e, {t: 'glob', v: 'gaia'});
+      assert.strictEqual(ast[0].$x[0].p, 'formFactor');
+      assert.strictEqual(ast[0].$x[0].c, false);
     });
 
     it('call expression', function() {
       var ast = parse( '<id[@cldr.plural($n)] "foo">');
       assert.strictEqual(ast[0].$x[0].t, 'call');
-      assert.strictEqual(ast[0].$x[0].v.t, 'glob');
-      assert.strictEqual(ast[0].$x[0].v.v, 'cldr.plural');
+      assert.strictEqual(ast[0].$x[0].v.t, 'prop');
+      assert.deepEqual(ast[0].$x[0].v.e, {t: 'glob', v: 'cldr'});
+      assert.strictEqual(ast[0].$x[0].v.p, 'plural');
       assert.deepEqual(ast[0].$x[0].a[0], {t: 'var', v: 'n'});
     });
 
@@ -436,8 +440,9 @@ describe('L10n Parser', function() {
       var ast = parse(
         '<id[@icu.formatDate($d, dateShortFormat)] "foo">');
       assert.strictEqual(ast[0].$x[0].t, 'call');
-      assert.strictEqual(ast[0].$x[0].v.t, 'glob');
-      assert.strictEqual(ast[0].$x[0].v.v, 'icu.formatDate');
+      assert.strictEqual(ast[0].$x[0].v.t, 'prop');
+      assert.deepEqual(ast[0].$x[0].v.e, {t: 'glob', v: 'icu'});
+      assert.strictEqual(ast[0].$x[0].v.p, 'formatDate');
       assert.deepEqual(ast[0].$x[0].a[0], {t: 'var', v: 'd'});
       assert.deepEqual(ast[0].$x[0].a[1], {t: 'id', v: 'dateShortFormat'});
     });

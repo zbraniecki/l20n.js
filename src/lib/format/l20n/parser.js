@@ -303,8 +303,7 @@ var L20nParser = {
     return hash;
   },
 
-  unescapeString: function() {
-    var ch = this._source.charAt(++this._index);
+  unescapeString: function(ch) {
     var cc;
     if (ch === 'u') { // special case for unicode
       var ucode = '';
@@ -355,7 +354,12 @@ var L20nParser = {
       ch = this._source.charAt(++this._index);
       switch (ch) {
         case '\\':
-          buf += this.unescapeString();
+          var ch2 = this._source.charAt(++this._index);
+          if (ch2 === 'u' || ch2 === opchar) {
+            buf += this.unescapeString(ch2);
+          } else {
+            buf += ch2;
+          }
           break;
         case '{':
           /* We want to go to default unless {{ */
