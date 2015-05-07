@@ -189,6 +189,80 @@ var L20nParser = {
   },
 
   getString: function(opchar, opcharLen) {
+    var overlay = false;
+    var miniStack = [opchar];
+
+    this._index += opcharLen;
+    var buf = '';
+
+    walkChars:
+    while (true) {
+      var ch = this._source[this._index];
+      if (!ch) {
+        throw this.error('Unclosed string literal');
+      }
+      if (ch === '\\') {
+        var ch2 = this._source[this._index + 1];
+        switch (ch2) {
+          case '\\':
+          case opchar:
+            buf += ch2;
+            break;
+          case '{':
+            if (this._source[this._index + 2] == '{') {
+              buf += '{{';
+              this._index += 1;
+              break;
+            }
+          default:
+            buf += '\\' + ch2;
+        }
+        this._index += 2;
+      } else if (ch === opchar) {
+        if (miniStack[miniStack.length - 1] === opchar) {
+          if (miniStack.length === 1) {
+            this._index++;
+            break walkChars;
+          } else {
+            miniStack.pop();
+            this._index++;
+            buf += opchar;
+          }
+        } else {
+          miniStack.push(opchar);
+          buf += opchar;
+          this._index++;
+        }
+      } else if (ch === '{' && this._source[this._index + 1] === '{') {
+        if (miniStack[miniStack.length - 1] === '{{') {
+          throw this.error('Nested placeable opening');
+        }
+        miniStack.push('{{');
+        buf += '{{';
+        this._index +=2;
+      } else if (ch === '}' && this._source[this._index + 1] === '}') {
+        if (miniStack[miniStack.length - 1] == '{{') {
+          miniStack.pop();
+          buf += '}}';
+          this._index += 2;
+        } else {
+          buf += this._source[this._index];
+          this._index++;
+        }
+      } else {
+        if (miniStack[miniStack.length - 1] === opchar &&
+            (ch === '<' || ch === '&')) {
+          overlay = true;
+        }
+        buf += this._source[this._index];
+        this._index++;
+      }
+    }
+
+    return [buf, overlay];
+  },
+
+  getString2: function(opchar, opcharLen) {
     var opcharPos = this._source.indexOf(opchar, this._index + opcharLen);
 
     if (opcharPos === -1) {
