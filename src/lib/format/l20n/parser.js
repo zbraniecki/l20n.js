@@ -170,10 +170,18 @@ var L20nParser = {
     var start = this._index;
     var cc = this._source.charCodeAt(this._index);
 
-    while ((cc >= 97 && cc <= 122) ||
-           (cc >= 65 && cc <= 90) ||
-           (cc >= 48 && cc <= 57) ||
-           cc === 95) {
+    if ((cc >= 97 && cc <= 122) || // a-z
+        (cc >= 65 && cc <= 90) ||  // A-Z
+        cc === 95) {               // _
+      cc = this._source.charCodeAt(++this._index);
+    } else {
+      throw this.error('Identifier has to start with [a-zA-Z_]');
+    }
+
+    while ((cc >= 97 && cc <= 122) || // a-z
+           (cc >= 65 && cc <= 90) ||  // A-Z
+           (cc >= 48 && cc <= 57) ||  // 0-9
+           cc === 95) {               // _
       cc = this._source.charCodeAt(++this._index);
     }
 
