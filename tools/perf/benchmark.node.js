@@ -41,33 +41,7 @@ var ast = parser.parse(code);
 cumulative.parseEnd = process.hrtime(start);
 
 
-cumulative.createEntries = process.hrtime(start);
-L20n.extendEntries(env, ast);
-cumulative.createEntriesEnd = process.hrtime(start);
-
-var ids = Object.keys(env).filter(function(id){return id !== '__plural';});
-
-cumulative.format = process.hrtime(start);
-for (var id in ids) {
-  L20n.Resolver.format(data, env[ids[id]]);
-}
-cumulative.formatEnd = process.hrtime(start);
-
-var ctx = new Context(null);
-var locale = ctx.getLocale('en-US');
-locale.addAST(ast);
-ctx.requestLocales(['en-US']);
-
-cumulative.getEntity = process.hrtime(start);
-for (var id in ids) {
-  ctx.getEntity(ids[id], data);
-}
-cumulative.getEntityEnd = process.hrtime(start);
-
 var results = {
   parse: micro(cumulative.parseEnd),
-  createEntries: micro(cumulative.createEntriesEnd) - micro(cumulative.createEntries),
-  format: micro(cumulative.formatEnd) - micro(cumulative.format),
-  getEntity: micro(cumulative.getEntityEnd) - micro(cumulative.getEntity)
 };
 console.log(JSON.stringify(results));

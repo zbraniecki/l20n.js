@@ -9,10 +9,6 @@ var L20nParser = {
   _index: null,
   _length: null,
 
-  _patterns: {
-    identifier: /[A-Za-z_]\w*/g
-  },
-
   parse: function(string) {
     this._source = string;
     this._index = 0;
@@ -171,20 +167,17 @@ var L20nParser = {
   },
 
   getIdentifier: function() {
-    var reId = this._patterns.identifier;
+    var start = this._index;
+    var cc = this._source.charCodeAt(this._index);
 
-    reId.lastIndex = this._index;
-
-    var match = reId.exec(this._source);
-
-    if (!match ||
-        reId.lastIndex - this._index !== match[0].length) {
-      throw this.error('Identifier has to start with [a-zA-Z_]');
+    while ((cc >= 97 && cc <= 122) ||
+           (cc >= 65 && cc <= 90) ||
+           (cc >= 48 && cc <= 57) ||
+           cc === 95) {
+      cc = this._source.charCodeAt(++this._index);
     }
 
-    this._index = reId.lastIndex;
-
-    return match[0];
+    return this._source.slice(start, this._index);
   },
 
   getString: function(opchar, opcharLen) {
