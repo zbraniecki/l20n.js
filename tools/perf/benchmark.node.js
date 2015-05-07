@@ -3,12 +3,12 @@ var fs = require('fs');
 var L20n = require('../../src/bindings/node');
 var Context = require('../../src/lib/context').Context;
 
-var parser = L20n.PropertiesParser;
+var parser = L20n.L20nParser;
 var env = {
   __plural: L20n.getPluralRule('en-US')
 };
 
-var code = fs.readFileSync(__dirname + '/example.properties').toString();
+var code = fs.readFileSync(__dirname + '/example.l20n').toString();
 var data = {
   "brandShortName": "BRANDSHORTNAME",
   "ssid": "SSID",
@@ -37,7 +37,7 @@ function micro(time) {
 var cumulative = {};
 var start = process.hrtime();
 
-var ast = parser.parse(null, code);
+var ast = parser.parse(code);
 cumulative.parseEnd = process.hrtime(start);
 
 
