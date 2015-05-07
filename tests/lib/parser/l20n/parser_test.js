@@ -186,12 +186,12 @@ describe('L10n Parser', function() {
   describe('Overlays', function() {
     it('string value with HTML markup', function() {
       var ast = parse( '<id "string <strong>foo</strong>">');
-      assert.strictEqual(ast[0].$v.t, 'overlay');
+      assert.strictEqual(ast[0].$v.o, true);
     });
 
     it('string value with an entity', function() {
       var ast = parse( '<id "string &nbsp; foo">');
-      assert.strictEqual(ast[0].$v.t, 'overlay');
+      assert.strictEqual(ast[0].$v.o, true);
     });
 
     it('string value with a smaller sign', function() {
@@ -208,7 +208,7 @@ describe('L10n Parser', function() {
       var ast = parse( '<id "string <strong>{{ $n }}</strong>">');
       assert.strictEqual(ast[0].$v.v[0], 'string <strong>');
       assert.deepEqual(ast[0].$v.v[1], {t: 'var', v: 'n'});
-      assert.strictEqual(ast[0].$v.t, 'overlay');
+      assert.strictEqual(ast[0].$v.o, true);
     });
   });
 
@@ -247,7 +247,7 @@ describe('L10n Parser', function() {
     it('hash value with an overlay', function() {
       var ast = parse( '<id {one: "<b>test</b>", many: "Many"}>');
       assert.strictEqual(ast[0].$v.one.v, '<b>test</b>');
-      assert.strictEqual(ast[0].$v.one.t, 'overlay');
+      assert.strictEqual(ast[0].$v.one.o, true);
     });
 
     it('hash value with a complex string', function() {
@@ -304,7 +304,7 @@ describe('L10n Parser', function() {
     it('attribute with an overlay value', function() {
       var ast = parse( '<id title: "Title &nbsp;">');
       assert.strictEqual(ast[0].title.v, 'Title &nbsp;');
-      assert.strictEqual(ast[0].title.t, 'overlay');
+      assert.strictEqual(ast[0].title.o, true);
     });
 
     it('attribute with a complex value', function() {
@@ -337,7 +337,7 @@ describe('L10n Parser', function() {
       var ast = parse( '<id title: {*one: "One&nbsp;{{ $n }}"}>');
       assert.strictEqual(ast[0].title.one.v[0], 'One&nbsp;');
       assert.deepEqual(ast[0].title.one.v[1], {t: 'var', v: 'n'});
-      assert.deepEqual(ast[0].title.one.t, 'overlay');
+      assert.deepEqual(ast[0].title.one.o, true);
       assert.strictEqual(ast[0].title.__default, 'one');
     });
 

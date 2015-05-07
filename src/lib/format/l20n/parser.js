@@ -31,7 +31,7 @@ var L20nParser = {
     if (astAndOverlay[1]) {
       var ret = Object.create(null);
       ret.v = astAndOverlay[0];
-      ret.t = 'overlay';
+      ret.o = true;
       return ret;
     }
     return astAndOverlay[0];
@@ -143,9 +143,8 @@ var L20nParser = {
         value.x = index;
       }
       
-      // maybe we should keep the default type and add an additional flag here?
       if (overlay) {
-        value.t = 'overlay';
+        value.o = true;
       }
       return value;
     }

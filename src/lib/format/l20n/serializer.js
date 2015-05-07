@@ -75,7 +75,7 @@ var L20nSerializer = {
       return this.dumpComplexString(value);
     }
     if (typeof value === 'object') {
-      if (value.t === 'overlay') {
+      if (value.o) {
         return this.dumpValue(value.v);
       }
       return this.dumpHash(value, depth);
