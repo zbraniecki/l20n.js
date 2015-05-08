@@ -56,7 +56,7 @@ var L20nSerializer = {
   },
 
   dumpIdentifier: function(id) {
-    return id;
+    return id.replace(/-/g, '_');
   },
 
   dumpValue: function(value, depth) {
@@ -163,7 +163,10 @@ var L20nSerializer = {
         ret += exp.v;
         break;
       case 'id':
-        ret += exp.v;
+        ret += this.dumpIdentifier(exp.v);
+        break;
+      case 'idOrVar':
+        ret += this.dumpIdentifier(exp.v);
         break;
       default:
         throw new L10nError('Unknown primary expression');

@@ -104,7 +104,7 @@ var PropertiesParser = {
       this.parseString(rawValue) : rawValue;
 
     if (rawValue.indexOf('<') > -1 || rawValue.indexOf('&') > -1) {
-      value = { $o: value };
+      value = { v: value, o: true };
     }
 
     if (attr) {
@@ -198,7 +198,12 @@ var PropertiesParser = {
       throw new L10nError('Malformed index');
     }
     if (match[2]) {
-      return [{t: 'idOrVar', v: match[1]}, match[2]];
+      return [{t: 'call',
+               v: {t: 'prop',
+                   e: {t: 'glob', v: 'cldr'},
+                   p: match[1],
+                   c: false},
+               a: [{t: 'var', v: match[2]}]}];
     } else {
       return [{t: 'idOrVar', v: match[1]}];
     }
