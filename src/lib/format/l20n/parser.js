@@ -430,6 +430,14 @@ var L20nParser = {
           }
       }
     }
+
+    if (this.simpleMode) {
+      if (buf.length && this.isOverlay(buf)) {
+        overlay = true;
+      }
+      return [this._source.slice(start, this._index - 1), overlay];
+    }
+
     if (body === null) {
       return [buf, this.isOverlay(buf)];
     }
@@ -440,9 +448,7 @@ var L20nParser = {
       body.push(buf);
     }
 
-    if (this.simpleMode) {
-      return [this._source.slice(start, this._index - 1), overlay];
-    }
+
     return [body, overlay];
   },
 
