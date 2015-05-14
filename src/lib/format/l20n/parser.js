@@ -9,10 +9,11 @@ var L20nParser = {
   _index: null,
   _length: null,
 
-  parse: function(string) {
+  parse: function(string, simple) {
     this._source = string;
     this._index = 0;
     this._length = this._source.length;
+    this.simpleMode = simple;
 
     return this.getL20n();
   },
@@ -39,7 +40,9 @@ var L20nParser = {
     this.getWS();
     while (this._index < this._length) {
       var e = this.getEntry();
-      ast.push(e);
+      if (e) {
+        ast.push(e);
+      }
 
       if (this._index < this._length) {
         this.getWS();
@@ -61,6 +64,12 @@ var L20nParser = {
           this.getItemList(this.getExpression.bind(this), ']'));
       }
       return this.getEntity(id, null);
+    }
+
+    // 47,42 === /*
+    if (this._source.charCodeAt(this._index) === 47 &&
+        this._source.charCodeAt(this._index + 1) === 42) {
+      return this.getComment();
     }
     throw this.error('Invalid entry');
   },
@@ -298,9 +307,22 @@ var L20nParser = {
     }
     
     if (defItem !== undefined) {
-      hash['__default'] = defItem;
+      hash.__default = defItem;
     }
     return hash;
+  },
+
+  getComment: function() {
+    this._index += 2;
+    var start = this._index;
+    var end = this._source.indexOf('*/', start);
+
+    if (end === -1) {
+      throw this.error('Comment without closing tag');
+    }
+
+    this._index = end + 2;
+    return;
   },
 
   unescapeString: function(ch) {
@@ -348,6 +370,8 @@ var L20nParser = {
     var ch;
 
     this._index += opcharLen - 1;
+
+    var start = this._index;
 
     walkChars:
     while (true) {
@@ -414,6 +438,10 @@ var L20nParser = {
         overlay = true;
       }
       body.push(buf);
+    }
+
+    if (this.simpleMode) {
+      return [this._source.slice(start, this._index), overlay];
     }
     return [body, overlay];
   },

@@ -61,7 +61,7 @@ function print(type, err, data) {
 }
 
 if (program.args.length) {
-  var type = program.args[0].substr(program.args[0].lastIndexOf('.')+1);
+  var type = program.args[0].substr(program.args[0].lastIndexOf('.') + 1);
   fs.readFile(program.args[0], print.bind(null, type));
 } else {
   process.stdin.resume();
