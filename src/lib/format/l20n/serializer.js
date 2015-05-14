@@ -84,7 +84,7 @@ var L20nSerializer = {
 
   dumpString: function(str) {
     if (str) {
-      return '"' + str.replace(/"/g, '\\"') + '"';
+      return '"' + str + '"';
     }
     return '';
   },

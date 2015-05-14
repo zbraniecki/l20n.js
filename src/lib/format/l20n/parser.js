@@ -371,7 +371,7 @@ var L20nParser = {
 
     this._index += opcharLen - 1;
 
-    var start = this._index;
+    var start = this._index + 1;
 
     walkChars:
     while (true) {
@@ -385,7 +385,7 @@ var L20nParser = {
               (ch2 === '{' && this._source.charAt(this._index + 1) === '{')) {
             buf += this.unescapeString(ch2);
           } else {
-            buf += ch + ch2;
+            throw this.error('Illegal unicode escape sequence');
           }
           break;
         case '{':
@@ -441,7 +441,7 @@ var L20nParser = {
     }
 
     if (this.simpleMode) {
-      return [this._source.slice(start, this._index), overlay];
+      return [this._source.slice(start, this._index - 1), overlay];
     }
     return [body, overlay];
   },
