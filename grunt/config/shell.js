@@ -18,6 +18,9 @@ switch(engine) {
   case 'node':
     benchmark = 'node benchmark.node.js';
     break;
+  case 'iojs':
+    benchmark = 'iojs benchmark.node.js';
+    break;
   default:
     grunt.fatal('Unknown engine: ' + grunt.option('engine'));
 }

@@ -50,6 +50,7 @@ function print(type, err, data) {
   } catch (e) {
     logError(e);
   }
+  return;
   if (program.raw) {
     console.log(JSON.stringify(ast, null, 2));
   } else {

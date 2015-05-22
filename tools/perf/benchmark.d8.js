@@ -1,11 +1,11 @@
 load('../../dist/jsshell/l10n.js');
 
-var parser = L20n.PropertiesParser;
+var parser = L20n.L20nParser;
 var env = {
   __plural: L20n.getPluralRule('en-US')
 };
 
-var code = read('./example.properties');
+var code = read('./example.l20n');
 var data = {
   "ssid": "SSID",
   "capabilities": "CAPABILITIES",
@@ -33,37 +33,11 @@ function micro(time) {
 var times = {};
 times.start = Date.now();
 
-var ast = parser.parse(null, code);
+var ast = parser.parse(code);
 times.parseEnd = Date.now();
-
-times.createEntries = Date.now();
-L20n.extendEntries(entries, ast);
-times.createEntriesEnd = Date.now();
-
-var ids = Object.keys(env).filter(function(id){return id !== '__plural';});
-
-times.format = Date.now();
-for (var id in ids) {
-   L20n.Resolver.format(data, env[ids[id]], data);
-}
-times.formatEnd = Date.now();
-
-var ctx = new L20n.Context(null);
-var locale = ctx.getLocale('en-US');
-locale.addAST(ast);
-ctx.requestLocales(['en-US']);
-
-times.getEntity = Date.now();
-for (var id in ids) {
-  ctx.getEntity(ids[id], data);
-}
-times.getEntityEnd = Date.now();
 
 var results = {
   parse: micro(times.parseEnd - times.start),
-  createEntries: micro(times.createEntriesEnd - times.createEntries),
-  format: micro(times.formatEnd - times.format),
-  getEntity: micro(times.getEntityEnd - times.getEntity),
 };
 
 print(JSON.stringify(results));
