@@ -310,6 +310,7 @@ var L20nParser = {
       } catch (e) {
         if (this.ctx) {
           this.ctx._emitter.emit('parsererror', e);
+          ast.push(this.recover());
         } else {
           throw e;
         }
@@ -370,6 +371,25 @@ var L20nParser = {
 
     var msg = message + ' at pos ' + pos + ': "' + context + '"';
     return new L10nError(msg, pos, context);
+  },
+
+  recover: function() {
+    var opening = this._source.indexOf('<', this._index);
+    var junk;
+
+    if (opening === -1) {
+      this._index = this._length;
+      return {$t: 'junk', $c: this._source.slice(this._index)};
+    }
+
+    var ret = {
+      $t: 'junk',
+      $c: this._source.slice(this._index, opening)
+    };
+
+    this._index = opening;
+
+    return ret;
   }
 };
 
