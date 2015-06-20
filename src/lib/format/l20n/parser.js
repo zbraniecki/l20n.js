@@ -1,248 +1,82 @@
 'use strict';
 
-import { L10nError } from '../../errors';
+var L10nError = require('../../errors').L10nError;
 
 var MAX_PLACEABLES = 100;
 
-export default {
-  _patterns: null,
+var L20nParser = {
+  _source: null,
+  _index: null,
+  _length: null,
 
-  init: function() {
-    this._patterns = {
-      identifier: /[A-Za-z_]\w*/g,
-      unicode: /\\u([0-9a-fA-F]{1,4})/g,
-      index: /@cldr\.plural\(\$?(\w+)\)/g,
-      placeables: /\{\{\s*\$?([^\s]*?)\s*\}\}/,
-      unesc: /\\({{|u[0-9a-fA-F]{4}|.)/g,
-    };
-  },
-
-  parse: function (env, string, simple) {
-    if (!this._patterns) {
-      this.init();
-    }
+  parse: function(string, simple) {
     this._source = string;
     this._index = 0;
     this._length = this._source.length;
     this.simpleMode = simple;
-    this.env = env;
 
     return this.getL20n();
   },
 
-  getAttributes: function() {
-    var attrs = Object.create(null);
-    var attr, ws1, ch;
+  parseString: function(string) {
+    this._source = string;
+    this._index = 0;
+    this._length = this._source.length;
 
-    while (true) {
-      attr = this.getKVPWithIndex();
-      attrs[attr[0]] = attr[1];
-      ws1 = this.getRequiredWS();
-      ch = this._source.charAt(this._index);
-      if (ch === '>') {
-        break;
-      } else if (!ws1) {
-        throw this.error('Expected ">"');
+    var astAndOverlay = this.getString(string.charAt(0), 1);
+
+    if (astAndOverlay[1]) {
+      var ret = Object.create(null);
+      ret.v = astAndOverlay[0];
+      ret.o = true;
+      return ret;
+    }
+    return astAndOverlay[0];
+  },
+
+  getL20n: function() {
+    var ast = [];
+
+    this.getWS();
+    while (this._index < this._length) {
+      var e = this.getEntry();
+      if (e) {
+        ast.push(e);
       }
-    }
-    return attrs;
-  },
 
-  getKVP: function() {
-    var key = this.getIdentifier();
-    this.getWS();
-    if (this._source.charAt(this._index) !== ':') {
-      throw this.error('Expected ":"');
-    }
-    ++this._index;
-    this.getWS();
-    return [key, this.getValue()];
-  },
-
-  getKVPWithIndex: function() {
-    var key = this.getIdentifier();
-    var index = null;
-
-    if (this._source.charAt(this._index) === '[') {
-      ++this._index;
-      this.getWS();
-      index = this.getIndex();
-    }
-    this.getWS();
-    if (this._source.charAt(this._index) !== ':') {
-      throw this.error('Expected ":"');
-    }
-    ++this._index;
-    this.getWS();
-    return [
-      key,
-      this.getValue(false, undefined, index)
-    ];
-  },
-
-  getHash: function() {
-    ++this._index;
-    this.getWS();
-    var hi, comma, hash = {};
-    while (true) {
-      hi = this.getKVP();
-      hash[hi[0]] = hi[1];
-      this.getWS();
-
-      comma = this._source.charAt(this._index) === ',';
-      if (comma) {
-        ++this._index;
+      if (this._index < this._length) {
         this.getWS();
       }
-      if (this._source.charAt(this._index) === '}') {
+    }
+
+    return ast;
+  },
+
+  getEntry: function() {
+    // 60 === '<'
+    if (this._source.charCodeAt(this._index) === 60) {
+      ++this._index;
+      var id = this.getIdentifier();
+      // 91 == '['
+      if (this._source.charCodeAt(this._index) === 91) {
         ++this._index;
-        break;
+        return this.getEntity(id,
+          this.getItemList(this.getExpression.bind(this), ']'));
       }
-      if (!comma) {
-        throw this.error('Expected "}"');
-      }
-    }
-    return hash;
-  },
-
-  unescapeString: function(str, opchar) {
-    function replace(match, p1) {
-      switch (p1) {
-        case '\\':
-          return '\\';
-        case '{{':
-          return '{{';
-        case opchar:
-          return opchar;
-        default:
-          if (p1.length === 5 && p1.charAt(0) === 'u') {
-            return String.fromCharCode(parseInt(p1.substr(1), 16));
-          }
-          throw this.error('Illegal unescape sequence');
-      }
-    }
-    return str.replace(this._patterns.unesc, replace.bind(this));
-  },
-
-  getString: function(opchar) {
-    var overlay = false;
-
-    var opcharPos = this._source.indexOf(opchar, this._index + 1);
-
-    outer:
-    while (opcharPos !== -1) {
-      var backtrack = opcharPos - 1;
-      // 92 === '\'
-      while (this._source.charCodeAt(backtrack) === 92) {
-        if (this._source.charCodeAt(backtrack - 1) === 92) {
-          backtrack -= 2;
-        } else {
-          opcharPos = this._source.indexOf(opchar, opcharPos + 1);
-          continue outer;
-        }
-      }
-      break;
+      return this.getEntity(id, null);
     }
 
-    if (opcharPos === -1) {
-      throw this.error('Unclosed string literal');
+    // 47,42 === /*
+    if (this._source.charCodeAt(this._index) === 47 &&
+        this._source.charCodeAt(this._index + 1) === 42) {
+      return this.getComment();
     }
-
-    var buf = this._source.slice(this._index + 1, opcharPos);
-
-    this._index = opcharPos + 1;
-
-    if (!this.simpleMode && buf.indexOf('\\') !== -1) {
-      buf = this.unescapeString(buf, opchar);
-    }
-
-    if (buf.indexOf('<') > -1 || buf.indexOf('&') > -1) {
-      overlay = true;
-    }
-
-    if (!this.simpleMode && buf.indexOf('{{') !== -1) {
-      return [this.parseString(buf), overlay];
-    }
-
-    return [buf, overlay];
-  },
-
-  getValue: function(optional, ch, index) {
-    var val;
-
-    if (ch === undefined) {
-      ch = this._source.charAt(this._index);
-    }
-    if (ch === '\'' || ch === '"') {
-      var valAndOverlay = this.getString(ch);
-      if (valAndOverlay[1]) {
-        val = {'$o': valAndOverlay[0]};
-      } else {
-        val = valAndOverlay[0];
-      }
-    } else if (ch === '{') {
-      val = this.getHash();
-    }
-
-    if (val === undefined) {
-      if (!optional) {
-        throw this.error('Unknown value type');
-      }
-      return null;
-    }
-
-    if (index) {
-      return {'$v': val, '$x': index};
-    }
-
-    return val;
-  },
-
-  getRequiredWS: function() {
-    var pos = this._index;
-    var cc = this._source.charCodeAt(pos);
-    // space, \n, \t, \r
-    while (cc === 32 || cc === 10 || cc === 9 || cc === 13) {
-      cc = this._source.charCodeAt(++this._index);
-    }
-    return this._index !== pos;
-  },
-
-  getWS: function() {
-    var cc = this._source.charCodeAt(this._index);
-    // space, \n, \t, \r
-    while (cc === 32 || cc === 10 || cc === 9 || cc === 13) {
-      cc = this._source.charCodeAt(++this._index);
-    }
-  },
-
-
-  getIdentifier: function() {
-    var reId = this._patterns.identifier;
-    reId.lastIndex = this._index;
-    var match = reId.exec(this._source);
-    if (reId.lastIndex !== this._index + match[0].length) {
-      throw this.error('Identifier has to start with [a-zA-Z_]');
-    }
-    this._index = reId.lastIndex;
-
-    return match[0];
-  },
-
-  getComment: function() {
-    this._index += 2;
-    var start = this._index;
-    var end = this._source.indexOf('*/', start);
-
-    if (end === -1) {
-      throw this.error('Comment without closing tag');
-    }
-    this._index = end + 2;
-    return;
+    throw this.error('Invalid entry');
   },
 
   getEntity: function(id, index) {
-    var entity = {'$i': id};
+    var entity = Object.create(null);
+    entity.$i = id;
 
     if (index) {
       entity.$x = index;
@@ -284,86 +118,447 @@ export default {
     return entity;
   },
 
-  getEntry: function() {
-    // 60 === '<'
-    if (this._source.charCodeAt(this._index) === 60) {
-      ++this._index;
-      var id = this.getIdentifier();
-      // 91 == '['
-      if (this._source.charCodeAt(this._index) === 91) {
-        ++this._index;
-        return this.getEntity(id,
-                         this.getIndex());
+  getValue: function(optional, ch, index) {
+    var val;
+    var overlay = false;
+
+    if (ch === undefined) {
+      ch = this._source.charAt(this._index);
+    }
+    if (ch === '\'' || ch === '"') {
+      val = this.getString(ch, 1);
+      overlay = val[1];
+      val = val[0];
+    } else if (ch === '{') {
+      val = this.getHash();
+    }
+
+    if (val === undefined) {
+      if (!optional) {
+        throw this.error('Unknown value type');
       }
-      return this.getEntity(id, null);
+      return null;
     }
-    if (this._source.charCodeAt(this._index) === 47 &&
-        this._source.charCodeAt(this._index + 1) === 42) {
-      return this.getComment();
+
+    if (index || overlay) {
+      var value = Object.create(null);
+      value.v = val;
+
+      if (index) {
+        value.x = index;
+      }
+      
+      if (overlay) {
+        value.o = true;
+      }
+      return value;
     }
-    throw this.error('Invalid entry');
+
+    return val;
   },
 
-  getL20n: function() {
-    var ast = [];
+  getWS: function() {
+    var cc = this._source.charCodeAt(this._index);
+    // space, \n, \t, \r
+    while (cc === 32 || cc === 10 || cc === 9 || cc === 13) {
+      cc = this._source.charCodeAt(++this._index);
+    }
+  },
 
-    this.getWS();
-    while (this._index < this._length) {
-      try {
-        var entry = this.getEntry();
-        if (entry) {
-          ast.push(entry);
-        }
-      } catch (e) {
-        if (this.env) {
-          this.env.emit('parseerror', e);
-        } else {
-          throw e;
-        }
+  getRequiredWS: function() {
+    var pos = this._index;
+    var cc = this._source.charCodeAt(pos);
+    // space, \n, \t, \r
+    while (cc === 32 || cc === 10 || cc === 9 || cc === 13) {
+      cc = this._source.charCodeAt(++this._index);
+    }
+    return this._index !== pos;
+  },
+
+  getIdentifier: function() {
+    var start = this._index;
+    var cc = this._source.charCodeAt(this._index);
+
+    if ((cc >= 97 && cc <= 122) || // a-z
+        (cc >= 65 && cc <= 90) ||  // A-Z
+        cc === 95) {               // _
+      cc = this._source.charCodeAt(++this._index);
+    } else {
+      throw this.error('Identifier has to start with [a-zA-Z_]');
+    }
+
+    while ((cc >= 97 && cc <= 122) || // a-z
+           (cc >= 65 && cc <= 90) ||  // A-Z
+           (cc >= 48 && cc <= 57) ||  // 0-9
+           cc === 95) {               // _
+      cc = this._source.charCodeAt(++this._index);
+    }
+
+    return this._source.slice(start, this._index);
+  },
+
+  getString: function(opchar, opcharLen) {
+    var opcharPos = this._source.indexOf(opchar, this._index + opcharLen);
+
+    if (opcharPos === -1) {
+      throw this.error('Unclosed string literal');
+    }
+    var buf = this._source.slice(this._index + opcharLen, opcharPos);
+
+    var testPos = buf.indexOf('{{');
+    if (testPos !== -1) {
+      return this.getComplexString(opchar, opcharLen);
+    }
+    
+    testPos = buf.indexOf('\\');
+    if (testPos !== -1) {
+      return this.getComplexString(opchar, opcharLen);
+    }
+
+    this._index = opcharPos + opcharLen;
+
+    return [buf, this.isOverlay(buf)];
+  },
+
+
+  getAttributes: function() {
+    var attrs = Object.create(null);
+    var attr, ws1, ch;
+
+    while (true) {
+      attr = this.getKVPWithIndex();
+      attrs[attr[0]] = attr[1];
+      ws1 = this.getRequiredWS();
+      ch = this._source.charAt(this._index);
+      if (ch === '>') {
+        break;
+      } else if (!ws1) {
+        throw this.error('Expected ">"');
       }
+    }
+    return attrs;
+  },
 
-      if (this._index < this._length) {
+  getKVP: function() {
+    var key = this.getIdentifier();
+    this.getWS();
+    if (this._source.charAt(this._index) !== ':') {
+      throw this.error('Expected ":"');
+    }
+    ++this._index;
+    this.getWS();
+    return [key, this.getValue()];
+  },
+
+  getKVPWithIndex: function() {
+    var key = this.getIdentifier();
+    var index = null;
+
+    if (this._source.charAt(this._index) === '[') {
+      ++this._index;
+      this.getWS();
+      index = this.getItemList(this.getExpression.bind(this), ']');
+    }
+    this.getWS();
+    if (this._source.charAt(this._index) !== ':') {
+      throw this.error('Expected ":"');
+    }
+    ++this._index;
+    this.getWS();
+    return [
+      key,
+      this.getValue(false, undefined, index)
+    ];
+  },
+
+  getHash: function() {
+    ++this._index;
+    this.getWS();
+    var defItem, hi, comma, hash = Object.create(null);
+
+    while (true) {
+      var isDefItem = false;
+      if (this._source.charAt(this._index) === '*') {
+        ++this._index;
+        if (defItem !== undefined) {
+          throw this.error('Default item redefinition forbidden');
+        }
+        isDefItem = true;
+      }
+      hi = this.getKVP();
+      hash[hi[0]] = hi[1];
+      if (isDefItem) {
+        defItem = hi[0];
+      }
+      this.getWS();
+
+      comma = this._source.charAt(this._index) === ',';
+      if (comma) {
+        ++this._index;
         this.getWS();
       }
-    }
-
-    return ast;
-  },
-
-  getIndex: function() {
-    this.getWS();
-    this._patterns.index.lastIndex = this._index;
-    var match = this._patterns.index.exec(this._source);
-    this._index = this._patterns.index.lastIndex;
-    this.getWS();
-    this._index++;
-
-    return [{t: 'idOrVar', v: 'plural'}, match[1]];
-  },
-
-  parseString: function(str) {
-    var chunks = str.split(this._patterns.placeables);
-    var complexStr = [];
-
-    var len = chunks.length;
-    var placeablesCount = (len - 1) / 2;
-
-    if (placeablesCount >= MAX_PLACEABLES) {
-      throw new L10nError('Too many placeables (' + placeablesCount +
-                          ', max allowed is ' + MAX_PLACEABLES + ')');
-    }
-
-    for (var i = 0; i < chunks.length; i++) {
-      if (chunks[i].length === 0) {
-        continue;
+      if (this._source.charAt(this._index) === '}') {
+        ++this._index;
+        break;
       }
-      if (i % 2 === 1) {
-        complexStr.push({t: 'idOrVar', v: chunks[i]});
+      if (!comma) {
+        throw this.error('Expected "}"');
+      }
+    }
+    
+    if (defItem !== undefined) {
+      hash.__default = defItem;
+    }
+    return hash;
+  },
+
+  getComment: function() {
+    this._index += 2;
+    var start = this._index;
+    var end = this._source.indexOf('*/', start);
+
+    if (end === -1) {
+      throw this.error('Comment without closing tag');
+    }
+
+    this._index = end + 2;
+    return;
+  },
+
+  unescapeString: function(ch) {
+    var cc;
+    if (ch === 'u') { // special case for unicode
+      var ucode = '';
+      for (var i = 0; i < 4; i++) {
+        ch = this._source[++this._index];
+        cc = ch.charCodeAt(0);
+        if ((cc > 96 && cc < 103) || // a-f
+            (cc > 64 && cc < 71) || // A-F
+            (cc > 47 && cc < 58)) { // 0-9
+              ucode += ch;
+            } else {
+              throw this.error('Illegal unicode escape sequence');
+            }
+      }
+      return String.fromCharCode(parseInt(ucode, 16));
+    }
+    return ch;
+  },
+
+  isOverlay: function(str) {
+    var overlay = false;
+
+    var testPos = str.indexOf('<');
+    if (testPos !== -1 &&
+        str.charAt(testPos + 1) !== ' ') {
+      overlay = true;
+    } else {
+      testPos = str.indexOf('&');
+      if (testPos !== -1 &&
+          str.charAt(testPos + 1) !== ' ') {
+        overlay = true;
+      }
+    }
+    return overlay;
+  },
+
+  getComplexString: function(opchar, opcharLen) {
+    var body = null;
+    var buf = '';
+    var placeables = 0;
+    var overlay = false;
+    var ch;
+
+    this._index += opcharLen - 1;
+
+    var start = this._index + 1;
+
+    walkChars:
+    while (true) {
+      ch = this._source.charAt(++this._index);
+      switch (ch) {
+        case '\\':
+          var ch2 = this._source.charAt(++this._index);
+          if (ch2 === 'u' ||
+              ch2 === opchar ||
+              ch2 === '\\' ||
+              (ch2 === '{' && this._source.charAt(this._index + 1) === '{')) {
+            buf += this.unescapeString(ch2);
+          } else {
+            throw this.error('Illegal unicode escape sequence');
+          }
+          break;
+        case '{':
+          /* We want to go to default unless {{ */
+          /* jshint -W086 */
+          if (this._source.charAt(this._index + 1) === '{') {
+            if (body === null) {
+              body = [];
+            }
+            if (placeables > MAX_PLACEABLES - 1) {
+              throw this.error('Too many placeables, maximum allowed is ' +
+                  MAX_PLACEABLES);
+            }
+            if (buf) {
+              if (this.isOverlay(buf)) {
+                overlay = true;
+              }
+              body.push(buf);
+            }
+            this._index += 2;
+            this.getWS();
+            body.push(this.getExpression());
+            this.getWS();
+            if (this._source.charAt(this._index) !== '}' ||
+                this._source.charAt(this._index + 1) !== '}') {
+                  throw this.error('Expected "}}"');
+                }
+            this._index += 1;
+            placeables++;
+            
+            buf = '';
+            break;
+          }
+        default:
+          if (ch === opchar) {
+            this._index++;
+            break walkChars;
+          }
+          buf += ch;
+          if (this._index + 1 >= this._length) {
+            throw this.error('Unclosed string literal');
+          }
+      }
+    }
+
+    if (this.simpleMode) {
+      if (buf.length && this.isOverlay(buf)) {
+        overlay = true;
+      }
+      return [this._source.slice(start, this._index - 1), overlay];
+    }
+
+    if (body === null) {
+      return [buf, this.isOverlay(buf)];
+    }
+    if (buf.length) {
+      if (this.isOverlay(buf)) {
+        overlay = true;
+      }
+      body.push(buf);
+    }
+
+
+    return [body, overlay];
+  },
+
+  getExpression: function() {
+    var exp = this.getPrimaryExpression();
+    var cc;
+
+    while (true) {
+      cc = this._source.charCodeAt(this._index);
+      if (cc === 46 || cc === 91) { // . or [
+        ++this._index;
+        exp = this.getPropertyExpression(exp, cc === 91);
+      } else if (cc === 40) { // (
+        ++this._index;
+        exp = this.getCallExpression(exp);
       } else {
-        complexStr.push(chunks[i]);
+        break;
       }
     }
-    return complexStr;
+
+
+    return exp;
+  },
+
+  getPropertyExpression: function(idref, computed) {
+    var exp;
+    if (computed) {
+      this.getWS();
+      exp = this.getExpression();
+      this.getWS();
+      if (this._source.charAt(this._index) !== ']') {
+        throw this.error('Expected "]"');
+      }
+      ++this._index;
+    } else {
+      exp = this.getIdentifier();
+    }
+
+    var prop = Object.create(null);
+    prop.t = 'prop';
+    prop.e = idref;
+    prop.p = exp;
+    prop.c = computed;
+    return prop;
+  },
+
+  getCallExpression: function(callee) {
+    this.getWS();
+    var exp = Object.create(null);
+
+    exp.t = 'call';
+    exp.v = callee;
+    exp.a = this.getItemList(this.getExpression.bind(this), ')');
+
+    return exp;
+  },
+
+  getPrimaryExpression: function() {
+    var cc = this._source.charCodeAt(this._index);
+
+    var prim = Object.create(null);
+
+    switch (cc) {
+      // variable: $
+      case 36:
+        ++this._index;
+        prim.t = 'var';
+        prim.v = this.getIdentifier();
+        break;
+      // global: @
+      case 64:
+        ++this._index;
+        prim.t = 'glob';
+        prim.v = this.getIdentifier();
+        break;
+      default:
+        prim.t = 'id';
+        prim.v = this.getIdentifier();
+        break;
+    }
+
+    return prim;
+  },
+
+  getItemList: function(callback, closeChar) {
+    var ch;
+    this.getWS();
+    if (this._source.charAt(this._index) === closeChar) {
+      ++this._index;
+      return [];
+    }
+
+    var items = [];
+
+    while (true) {
+      items.push(callback());
+      this.getWS();
+      ch = this._source.charAt(this._index);
+      if (ch === ',') {
+        ++this._index;
+        this.getWS();
+      } else if (ch === closeChar) {
+        ++this._index;
+        break;
+      } else {
+        throw this.error('Expected "," or "' + closeChar + '"');
+      }
+    }
+
+    return items;
   },
 
   error: function(message, pos) {
@@ -373,9 +568,12 @@ export default {
     var start = this._source.lastIndexOf('<', pos - 1);
     var lastClose = this._source.lastIndexOf('>', pos - 1);
     start = lastClose > start ? lastClose + 1 : start;
-    var context = this._source.slice(start, pos + 10);
+    var context = '\x1b[90m' + this._source.slice(start, pos) + '\x1b[0m';
+    context += this._source.slice(pos, pos + 10);
 
-    var msg = message + ' at pos ' + pos + ': "' + context + '"';
-    return new L10nError(msg, pos, context);
+    var msg = message + ' at pos ' + pos + ': `' + context + '`';
+    return new L10nError(msg);
   }
 };
+
+module.exports = L20nParser;
