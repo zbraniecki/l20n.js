@@ -576,6 +576,11 @@ var L20nParser = {
   }
 };
 
-var l20nCode = read('./tools/perf/example.l20n');
+var source = '';
+var l20nCode = read('./example.l20n');
 
-var entries = L20nParser.parse(l20nCode);
+for (var i = 0; i < 1000; i++) {
+  source += l20nCode;
+}
+
+var entries = L20nParser.parse(source);
