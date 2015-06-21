@@ -1,6 +1,6 @@
 'use strict';
 
-var L10nError = require('../../errors').L10nError;
+//var L10nError = require('../../errors').L10nError;
 
 var MAX_PLACEABLES = 100;
 
@@ -576,4 +576,6 @@ var L20nParser = {
   }
 };
 
-module.exports = L20nParser;
+var l20nCode = read('./tools/perf/example.l20n');
+
+var entries = L20nParser.parse(l20nCode);
