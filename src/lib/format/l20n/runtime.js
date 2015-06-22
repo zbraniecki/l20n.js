@@ -78,13 +78,6 @@ var L20nParser = {
       cc = this._source.charCodeAt(++this._index);
     }
   },
-  getWS: function() {
-    var cc = this._source.charCodeAt(this._index);
-    // space, \n, \t, \r
-    while (cc === 32 || cc === 10 || cc === 9 || cc === 13) {
-      cc = this._source.charCodeAt(++this._index);
-    }
-  },
 
   getRequiredWS: function() {
     var pos = this._index;
