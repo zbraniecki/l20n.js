@@ -5,24 +5,28 @@ import { L10nError } from '../../errors';
 const MAX_PLACEABLES = 100;
 
 var L20nParser = {
-  _source: null,
-  _index: null,
-  _length: null,
-
   parse: function(string) {
     this._source = string;
     this._index = 0;
     this._length = string.length;
     this.entries = new Map();
 
-    return this.getL20n();
+    return this.getResource();
   },
 
-  getL20n: function() {
-
+  getResource: function() {
     this.getWS();
     while (this._index < this._length) {
-      this.getEntry();
+      try {
+        this.getEntry();
+      } catch (e) {
+        if (e instanceof L10nError) {
+          // we want to recover, but we don't need it in entries
+          this.getJunkEntry();
+        } else {
+          throw e;
+        }
+      }
 
       if (this._index < this._length) {
         this.getWS();
@@ -33,11 +37,18 @@ var L20nParser = {
   },
 
   getEntry: function() {
-    // 60 === '<'
-    if (this._source.charCodeAt(this._index) === 60) {
+    if (this._source[this._index] === '<') {
       ++this._index;
-      var id = this.getIdentifier();
-      return this.getEntity(id, null);
+      const id = this.getIdentifier();
+      if (this._source[this._index] === '[') {
+        ++this._index;
+        return this.getEntity(id, this.getItemList(this.getExpression, ']'));
+      }
+      return this.getEntity(id);
+    }
+
+    if (this._source.startsWith('/*', this._index)) {
+      return this.getComment();
     }
 
     throw this.error('Invalid entry');
@@ -48,10 +59,9 @@ var L20nParser = {
       throw this.error('Expected white space');
     }
 
-    var ch = this._source.charAt(this._index);
-    var value = this.getValue(index === null, ch);
-    this.entries.set(id, value);
-    var ws1 = this.getRequiredWS();
+    const ch = this._source.charAt(this._index);
+    const value = this.getValue(ch);
+    const ws1 = this.getRequiredWS();
     if (this._source.charAt(this._index) !== '>') {
       if (!ws1) {
         throw this.error('Expected ">"');
@@ -60,10 +70,11 @@ var L20nParser = {
 
     // skip '>'
     ++this._index;
+    this.entries.set(id, value);
   },
 
   getValue: function(optional, ch, index) {
-    var val;
+    let val;
 
     if (ch === '\'' || ch === '"') {
       val = this.getString(ch, 1);
@@ -72,7 +83,7 @@ var L20nParser = {
   },
 
   getWS: function() {
-    var cc = this._source.charCodeAt(this._index);
+    let cc = this._source.charCodeAt(this._index);
     // space, \n, \t, \r
     while (cc === 32 || cc === 10 || cc === 9 || cc === 13) {
       cc = this._source.charCodeAt(++this._index);
@@ -80,8 +91,8 @@ var L20nParser = {
   },
 
   getRequiredWS: function() {
-    var pos = this._index;
-    var cc = this._source.charCodeAt(pos);
+    const pos = this._index;
+    let cc = this._source.charCodeAt(pos);
     // space, \n, \t, \r
     while (cc === 32 || cc === 10 || cc === 9 || cc === 13) {
       cc = this._source.charCodeAt(++this._index);
@@ -90,8 +101,8 @@ var L20nParser = {
   },
 
   getIdentifier: function() {
-    var start = this._index;
-    var cc = this._source.charCodeAt(this._index);
+    const start = this._index;
+    let cc = this._source.charCodeAt(this._index);
 
     if ((cc >= 97 && cc <= 122) || // a-z
         (cc >= 65 && cc <= 90) ||  // A-Z
@@ -126,12 +137,12 @@ var L20nParser = {
   },
 
   getString: function(opchar, opcharLen) {
-    var opcharPos = this._source.indexOf(opchar, this._index + opcharLen);
+    const opcharPos = this._source.indexOf(opchar, this._index + opcharLen);
 
     if (opcharPos === -1) {
       throw this.error('Unclosed string literal');
     }
-    var buf = this._source.slice(this._index + opcharLen, opcharPos);
+    const buf = this._source.slice(this._index + opcharLen, opcharPos);
 
     this._index = opcharPos + opcharLen;
 
