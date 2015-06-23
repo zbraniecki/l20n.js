@@ -254,6 +254,7 @@ const L20nParser = {
   },
 
   getAttribute: function() {
+    const start = this._index;
     const key = this.getIdentifier();
     let index;
 
@@ -268,11 +269,14 @@ const L20nParser = {
     }
     ++this._index;
     this.getWS();
-    return new AST.Attribute(key, this.getValue(), index);
+    const attr = new AST.Attribute(key, this.getValue(), index);
+    attr.setPosition(start, this._index);
+    return attr;
   },
 
   getHash: function() {
-    let hash = [];
+    const start = this._index;
+    let items = [];
 
     ++this._index;
     this.getWS();
@@ -284,7 +288,7 @@ const L20nParser = {
         isDefItem = true;
       }
 
-      hash.push(this.getHashItem());
+      items.push(this.getHashItem());
       this.getWS();
 
       let comma = this._source[this._index] === ',';
@@ -301,10 +305,13 @@ const L20nParser = {
       }
     }
 
+    const hash = new AST.Hash(items);
+    hash.setPosition(start, this._index);
     return hash;
   },
 
   getHashItem: function() {
+    const start = this._index;
     const key = this.getIdentifier();
     this.getWS();
     if (this._source[this._index] !== ':') {
@@ -313,9 +320,9 @@ const L20nParser = {
     ++this._index;
     this.getWS();
 
-    const ast = new AST.HashItem(key, this.getValue());
-    ast.setPosition(this._curEntryStart, this._index);
-    return ast;
+    const hashItem = new AST.HashItem(key, this.getValue());
+    hashItem.setPosition(start, this._index);
+    return hashItem;
   },
 
   getComment: function() {
@@ -334,16 +341,17 @@ const L20nParser = {
   },
 
   getExpression: function () {
+    const start = this._index;
     let exp = this.getPrimaryExpression();
 
     while (true) {
       let ch = this._source[this._index];
       if (ch === '.' || ch === '[') {
         ++this._index;
-        exp = this.getPropertyExpression(exp, ch === '[');
+        exp = this.getPropertyExpression(exp, ch === '[', start);
       } else if (ch === '(') {
         ++this._index;
-        exp = this.getCallExpression(exp);
+        exp = this.getCallExpression(exp, start);
       } else {
         break;
       }
@@ -352,7 +360,7 @@ const L20nParser = {
     return exp;
   },
 
-  getPropertyExpression: function(idref, computed) {
+  getPropertyExpression: function(idref, computed, start) {
     let exp;
 
     if (computed) {
@@ -367,27 +375,36 @@ const L20nParser = {
       exp = this.getIdentifier();
     }
 
-    return new AST.PropertyExpression(idref, exp, computed);
+    const propExpr = new AST.PropertyExpression(idref, exp, computed);
+    propExpr.setPosition(start, this._index);
+    return propExpr;
   },
 
-  getCallExpression: function(callee) {
+  getCallExpression: function(callee, start) {
     this.getWS();
 
-    return new AST.CallExpression(callee,
+    const callExpr = new AST.CallExpression(callee,
       this.getItemList(this.getExpression, ')'));
+    callExpr.setPosition(start, this._index);
+    return callExpr;
   },
 
   getPrimaryExpression: function() {
+    const start = this._index;
     const ch = this._source[this._index];
 
     switch (ch) {
       case '$':
         ++this._index;
-        return new AST.Variable(this.getIdentifier());
+        const variable = new AST.Variable(this.getIdentifier());
+        variable.setPosition(start, this._index);
+        return variable;
         break;
       case '@':
         ++this._index;
-        return new AST.Global(this.getIdentifier());
+        const global = new AST.Global(this.getIdentifier());
+        global.setPosition(start, this._index);
+        return global;
         break;
       default:
         return this.getIdentifier();
@@ -457,7 +474,11 @@ const L20nParser = {
   }
 };
 
-var l20nCode = `<next "\\{{ foo }}">`;
+var l20nCode = `<next[@cldr.global($n)] {
+ one: "One item",
+ many: "{{ $n }} items"
+}
+ ariaLabel: "item list">`;
 
 var source = '';
 

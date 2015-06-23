@@ -1,15 +1,15 @@
 'use strict';
 
-//var L10nError = require('../../errors').L10nError;
+import { L10nError } from '../../errors';
 
 var MAX_PLACEABLES = 100;
 
-var L20nParser = {
+export default {
   _source: null,
   _index: null,
   _length: null,
 
-  parse: function(string, simple) {
+  parse: function(ctx, string, simple) {
     this._source = string;
     this._index = 0;
     this._length = this._source.length;
@@ -575,12 +575,3 @@ var L20nParser = {
     return new L10nError(msg);
   }
 };
-
-var source = '';
-var l20nCode = read('./example.l20n');
-
-for (var i = 0; i < 1000; i++) {
-  source += l20nCode;
-}
-
-var entries = L20nParser.parse(source);

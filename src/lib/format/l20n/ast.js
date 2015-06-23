@@ -51,6 +51,13 @@ class String extends Value {
   }
 }
 
+class Hash extends Value {
+  constructor(items) {
+    super();
+    this.items = items;
+  }
+}
+
 
 class Entity extends Entry {
   constructor(id, value = null, index = null, attrs = []) {
@@ -127,6 +134,7 @@ export default {
   Identifier,
   Value,
   String,
+  Hash,
   Entity,
   Resource,
   Attribute,
