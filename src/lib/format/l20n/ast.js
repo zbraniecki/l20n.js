@@ -20,15 +20,16 @@ class Value extends Node {
 }
 
 class String extends Value {
-  constructor(string) {
+  constructor(source, string) {
     super();
-    this.content = string
+    this.source = source;
+    this.content = string;
   }
 }
 
 
 class Entity extends Node {
-  constructor(id, value = null, index = [], attrs = []) {
+  constructor(id, value = null, index = null, attrs = []) {
     super();
     this.id = id;
     this.value = value;
@@ -44,10 +45,37 @@ class Resource extends Node {
   }
 }
 
+class Attribute extends Node {
+  constructor(id, value, index = null) {
+    super();
+    this.id = id;
+    this.value = value;
+    this.index = index;
+  }
+}
+
+class HashItem extends Node {
+  constructor(id, value) {
+    super();
+    this.id = id;
+    this.value = value;
+  }
+}
+
+class Comment extends Node {
+  constructor(body) {
+    super();
+    this.body = body;
+  }
+}
+
 export default {
   Identifier,
   Value,
   String,
   Entity,
-  Resource
+  Resource,
+  Attribute,
+  HashItem,
+  Comment,
 };
