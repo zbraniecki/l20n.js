@@ -1,8 +1,8 @@
 'use strict';
 
-//var L10nError = require('../../errors').L10nError;
+import { L10nError } from '../../errors';
 
-var MAX_PLACEABLES = 100;
+const MAX_PLACEABLES = 100;
 
 var L20nParser = {
   _source: null,
@@ -109,6 +109,20 @@ var L20nParser = {
     }
 
     return this._source.slice(start, this._index);
+  },
+
+  getUnicodeChar: function() {
+    for (let i = 0; i < 4; i++) {
+      let cc = this._source.charCodeAt(++this._index);
+      if ((cc > 96 && cc < 103) || // a-f
+          (cc > 64 && cc < 71) ||  // A-F
+          (cc > 47 && cc < 58)) {  // 0-9
+        continue;
+      }
+      throw this.error('Illegal unicode escape sequence');
+    }
+    return String.fromCharCode(
+      parseInt(this._source.slice(this._index - 3, this._index + 1), 16));
   },
 
   getString: function(opchar, opcharLen) {

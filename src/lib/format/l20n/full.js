@@ -1,6 +1,7 @@
 'use strict';
 
 import AST from './ast';
+import { L10nError } from '../../errors';
 
 const MAX_PLACEABLES = 100;
 
@@ -9,16 +10,27 @@ const L20nParser = {
     this._source = string;
     this._index = 0;
     this._length = string.length;
+    this._curEntryStart = 0;
 
     return this.getResource();
   },
 
   getResource: function() {
     let resource = new AST.Resource();
+    resource.setPosition(0, this._length);
 
     this.getWS();
     while (this._index < this._length) {
-      resource.body.push(this.getEntry());
+      try {
+        resource.body.push(this.getEntry());
+      } catch (e) {
+        if (e instanceof L10nError) {
+          console.log(e);
+          resource.body.push(this.getJunkEntry());
+        } else {
+          throw e;
+        }
+      }
       if (this._index < this._length) {
         this.getWS();
       }
@@ -28,6 +40,8 @@ const L20nParser = {
   },
 
   getEntry: function() {
+    this._curEntryStart = this._index;
+
     if (this._source[this._index] === '<') {
       ++this._index;
       const id = this.getIdentifier();
@@ -73,7 +87,9 @@ const L20nParser = {
     // skip '>'
     ++this._index;
 
-    return new AST.Entity(id, value, index, attrs);
+    const entity = new AST.Entity(id, value, index, attrs);
+    entity.setPosition(this._curEntryStart, this._index);
+    return entity;
   },
 
   getValue: function(ch = this._source[this._index]) {
@@ -129,7 +145,9 @@ const L20nParser = {
       cc = this._source.charCodeAt(++this._index);
     }
 
-    return new AST.Identifier(this._source.slice(start, this._index));
+    const id = new AST.Identifier(this._source.slice(start, this._index));
+    id.setPosition(start, this._index);
+    return id;
   },
 
   getUnicodeChar: function() {
@@ -142,8 +160,7 @@ const L20nParser = {
       }
       throw this.error('Illegal unicode escape sequence');
     }
-    return String.fromCharCode(
-      parseInt(this._source.slice(this._index - 3, this._index + 1), 16));
+    return '\\u' + this._source.slice(this._index - 3, this._index + 1);
   },
 
   getString: function(opchar, opcharLen) {
@@ -156,7 +173,7 @@ const L20nParser = {
     const start = this._index + 1;
 
     let closed = false;
-    
+
     while (!closed) {
       let ch = this._source[++this._index];
       
@@ -168,7 +185,7 @@ const L20nParser = {
           } else if (ch2 === opchar || ch2 === '\\') {
             buf += ch2;
           } else if (ch2 === '{' && this._source[this._index + 1] === '{') {
-            buf += '{{';
+            buf += '{';
           } else {
             throw this.error('Illegal escape sequence');
           }
@@ -212,7 +229,11 @@ const L20nParser = {
       body.push(buf);
     }
 
-    return new AST.String(this._source.slice(start, this._index - 1), body);
+    const string = new AST.String(
+      this._source.slice(start, this._index - 1), body);
+    string.setPosition(start, this._index);
+
+    return string;
   },
 
   getAttributes: function() {
@@ -291,7 +312,10 @@ const L20nParser = {
     }
     ++this._index;
     this.getWS();
-    return new AST.HashItem(key, this.getValue());
+
+    const ast = new AST.HashItem(key, this.getValue());
+    ast.setPosition(this._curEntryStart, this._index);
+    return ast;
   },
 
   getComment: function() {
@@ -304,10 +328,70 @@ const L20nParser = {
     }
 
     this._index = end + 2;
-    return new AST.Comment(this._source.slice(start, end));
+    const comment = new AST.Comment(this._source.slice(start, end));
+    comment.setPosition(this._curEntryStart, this._index);
+    return comment;
   },
 
   getExpression: function () {
+    let exp = this.getPrimaryExpression();
+
+    while (true) {
+      let ch = this._source[this._index];
+      if (ch === '.' || ch === '[') {
+        ++this._index;
+        exp = this.getPropertyExpression(exp, ch === '[');
+      } else if (ch === '(') {
+        ++this._index;
+        exp = this.getCallExpression(exp);
+      } else {
+        break;
+      }
+    }
+
+    return exp;
+  },
+
+  getPropertyExpression: function(idref, computed) {
+    let exp;
+
+    if (computed) {
+      this.getWS();
+      let exp = this.getExpression();
+      this.getWS();
+      if (this._source[this._index] !== ']') {
+        throw this.error('Expected "]"');
+      }
+      ++this._index;
+    } else {
+      exp = this.getIdentifier();
+    }
+
+    return new AST.PropertyExpression(idref, exp, computed);
+  },
+
+  getCallExpression: function(callee) {
+    this.getWS();
+
+    return new AST.CallExpression(callee,
+      this.getItemList(this.getExpression, ')'));
+  },
+
+  getPrimaryExpression: function() {
+    const ch = this._source[this._index];
+
+    switch (ch) {
+      case '$':
+        ++this._index;
+        return new AST.Variable(this.getIdentifier());
+        break;
+      case '@':
+        ++this._index;
+        return new AST.Global(this.getIdentifier());
+        break;
+      default:
+        return this.getIdentifier();
+    }
   },
 
   getItemList: function(callback, closeChar) {
@@ -342,11 +426,38 @@ const L20nParser = {
 
     return items;
   },
+
+  error: function(message) {
+    const pos = this._index;
+
+    let start = this._source.lastIndexOf('<', pos - 1);
+    let lastClose = this._source.lastIndexOf('>', pos - 1);
+    start = lastClose > start ? lastClose + 1 : start;
+    let context = '\x1b[90m' + this._source.slice(start, pos) + '\x1b[0m'; 
+    context += this._source.slice(pos, pos + 10);
+
+    let msg = message + ' at pos ' + pos + ': `' + context + '`';
+    return new L10nError(msg);
+  },
+
+  getJunkEntry: function() {
+    const pos = this._index;
+    const nextEntity = this._source.indexOf('<', pos);
+    const nextComment = this._source.indexOf('/*', pos);
+
+    let nextEntry = Math.min(nextEntity, nextComment);
+
+    if (nextEntry === -1) {
+      nextEntry = this._length;
+    }
+
+    this._index = nextEntry;
+
+    return new AST.JunkEntry(this._source.slice(this._curEntryStart, nextEntry));
+  }
 };
 
-var l20nCode = `
-<brandShortName "Foo \\u12abA\\u12abB {{ n }} ">
-`;
+var l20nCode = `<next "\\{{ foo }}">`;
 
 var source = '';
 
