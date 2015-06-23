@@ -282,11 +282,7 @@ const L20nParser = {
     this.getWS();
 
     while (true) {
-      let isDefItem = false;
-      if (this._source[this._index] === '*') {
-        ++this._index;
-        isDefItem = true;
-      }
+
 
       items.push(this.getHashItem());
       this.getWS();
@@ -312,6 +308,13 @@ const L20nParser = {
 
   getHashItem: function() {
     const start = this._index;
+
+    let defItem = false;
+    if (this._source[this._index] === '*') {
+      ++this._index;
+      defItem = true;
+    }
+
     const key = this.getIdentifier();
     this.getWS();
     if (this._source[this._index] !== ':') {
@@ -320,7 +323,7 @@ const L20nParser = {
     ++this._index;
     this.getWS();
 
-    const hashItem = new AST.HashItem(key, this.getValue());
+    const hashItem = new AST.HashItem(key, this.getValue(), defItem);
     hashItem.setPosition(start, this._index);
     return hashItem;
   },
@@ -475,8 +478,8 @@ const L20nParser = {
 };
 
 var l20nCode = `<next[@cldr.global($n)] {
- one: "One item",
- many: "{{ $n }} items"
+ *one: "One \\u1234 \\{{ foo }} item",
+ *many: "{{ $n }} items"
 }
  ariaLabel: "item list">`;
 

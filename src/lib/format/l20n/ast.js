@@ -86,10 +86,11 @@ class Attribute extends Node {
 }
 
 class HashItem extends Node {
-  constructor(id, value) {
+  constructor(id, value, defItem) {
     super();
     this.id = id;
     this.value = value;
+    this.default = defItem;
   }
 }
 
