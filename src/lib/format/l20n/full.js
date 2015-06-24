@@ -237,13 +237,13 @@ const L20nParser = {
   },
 
   getAttributes: function() {
-    let attrs = [];
+    const attrs = [];
 
     while (true) {
-      let attr = this.getAttribute();
+      const attr = this.getAttribute();
       attrs.push(attr);
-      let ws1 = this.getRequiredWS();
-      let ch = this._source.charAt(this._index);
+      const ws1 = this.getRequiredWS();
+      const ch = this._source.charAt(this._index);
       if (ch === '>') {
         break;
       } else if (!ws1) {
@@ -287,7 +287,7 @@ const L20nParser = {
       items.push(this.getHashItem());
       this.getWS();
 
-      let comma = this._source[this._index] === ',';
+      const comma = this._source[this._index] === ',';
       if (comma) {
         ++this._index;
         this.getWS();
