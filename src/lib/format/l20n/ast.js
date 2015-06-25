@@ -44,10 +44,10 @@ class Value extends Node {
 }
 
 class String extends Value {
-  constructor(source, string) {
+  constructor(source, content) {
     super();
     this.source = source;
-    this.content = string;
+    this.content = content;
   }
 }
 

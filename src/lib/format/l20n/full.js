@@ -18,6 +18,7 @@ const L20nParser = {
   getResource: function() {
     let resource = new AST.Resource();
     resource.setPosition(0, this._length);
+    resource._errors = []
 
     this.getWS();
     while (this._index < this._length) {
@@ -25,7 +26,7 @@ const L20nParser = {
         resource.body.push(this.getEntry());
       } catch (e) {
         if (e instanceof L10nError) {
-          console.log(e);
+          resource._errors.append(e)
           resource.body.push(this.getJunkEntry());
         } else {
           throw e;
@@ -65,7 +66,7 @@ const L20nParser = {
     }
 
     const ch = this._source.charAt(this._index);
-    const value = this.getValue(ch);
+    const value = this.getValue(ch, index === undefined);
     let attrs;
 
     if (value === null) {
@@ -77,7 +78,6 @@ const L20nParser = {
       const ws1 = this.getRequiredWS();
       if (this._source[this._index] !== '>') {
         if (!ws1) {
-        console.log(this._source.slice(this._index));
           throw this.error('Expected ">"');
         }
         attrs = this.getAttributes();
@@ -92,20 +92,21 @@ const L20nParser = {
     return entity;
   },
 
-  getValue: function(ch = this._source[this._index]) {
+  getValue: function(ch = this._source[this._index], optional = false) {
     let val;
 
     switch (ch) {
       case '\'':
       case '"':
-        val = this.getString(ch, 1);
-        break;
+        return this.getString(ch, 1);
       case '{':
-        val = this.getHash();
-        break;
+        return this.getHash();
     }
 
-    return val;
+    if (!optional) {
+      throw this.error('Unknown value type');
+    }
+    return null;
   },
 
   getWS: function() {
@@ -232,6 +233,7 @@ const L20nParser = {
     const string = new AST.String(
       this._source.slice(start, this._index - 1), body);
     string.setPosition(start, this._index);
+    string._opchar = opchar
 
     return string;
   },
@@ -282,8 +284,6 @@ const L20nParser = {
     this.getWS();
 
     while (true) {
-
-
       items.push(this.getHashItem());
       this.getWS();
 
@@ -339,7 +339,7 @@ const L20nParser = {
 
     this._index = end + 2;
     const comment = new AST.Comment(this._source.slice(start, end));
-    comment.setPosition(this._curEntryStart, this._index);
+    comment.setPosition(start - 2, this._index);
     return comment;
   },
 
@@ -465,6 +465,7 @@ const L20nParser = {
     const nextEntity = this._source.indexOf('<', pos);
     const nextComment = this._source.indexOf('/*', pos);
 
+    // guard against -1
     let nextEntry = Math.min(nextEntity, nextComment);
 
     if (nextEntry === -1) {
