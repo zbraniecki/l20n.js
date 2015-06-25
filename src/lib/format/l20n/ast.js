@@ -48,6 +48,8 @@ class String extends Value {
     super();
     this.source = source;
     this.content = content;
+
+    this._opchar = '"';
   }
 }
 
