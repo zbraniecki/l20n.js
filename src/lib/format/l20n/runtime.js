@@ -4,8 +4,8 @@ import { L10nError } from '../../errors';
 
 const MAX_PLACEABLES = 100;
 
-const L20nParser = {
-  parse: function(string) {
+export default {
+  parse: function(env, string) {
     this._source = string;
     this._index = 0;
     this._length = string.length;
@@ -289,13 +289,8 @@ const L20nParser = {
 
 
       let [key, value, def] = this.getHashItem();
-      if (typeof value === 'string') {
-        items[key] = value;
-      } else {
-        items[key] = {
-          value
-        };
-      }
+      items[key] = value;
+
       if (def) {
         defKey = key;
       }
@@ -387,10 +382,10 @@ const L20nParser = {
     }
 
     return {
-      t: 'prop',
-      i: idref,
-      p: exp,
-      c: computed
+      type: 'prop',
+      expr: idref,
+      prop: exp,
+      cmpt: computed
     };
   },
 
@@ -398,9 +393,9 @@ const L20nParser = {
     this.getWS();
 
     return {
-      t: 'call',
-      c: callee,
-      a: this.getItemList(this.getExpression, ')')
+      type: 'call',
+      call: callee,
+      args: this.getItemList(this.getExpression, ')')
     };
   },
 
@@ -412,21 +407,21 @@ const L20nParser = {
       case '$':
         ++this._index;
         return {
-          t: 'var',
-          v: this.getIdentifier()
+          type: 'var',
+          name: this.getIdentifier()
         };
         break;
       case '@':
         ++this._index;
         return {
-          t: 'glob',
-          v: this.getIdentifier()
+          type: 'glob',
+          name: this.getIdentifier()
         };
         break;
       default:
         return {
-          t: 'id',
-          v: this.getIdentifier()
+          type: 'id',
+          name: this.getIdentifier()
         };
     }
   },
@@ -445,12 +440,3 @@ const L20nParser = {
     return new L10nError(msg);
   },
 };
-
-var source = '';
-var l20nCode = read('./example.l20n');
-
-for (var i = 0; i < 1000; i++) {
-  source += l20nCode;
-}
-
-var entries = L20nParser.parse(source);
