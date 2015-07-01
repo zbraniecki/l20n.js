@@ -134,6 +134,7 @@ class JunkEntry extends Entry {
 }
 
 export default {
+  Node,
   Identifier,
   Value,
   String,

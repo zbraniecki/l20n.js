@@ -6,13 +6,16 @@ import { L10nError } from '../../errors';
 const MAX_PLACEABLES = 100;
 
 const L20nParser = {
-  parse: function(string) {
+  parse: function(env, string, pos = false) {
     this._source = string;
     this._index = 0;
     this._length = string.length;
     this._curEntryStart = 0;
 
-    return this.getResource();
+    if (pos !== true) {
+      AST.Node.prototype.setPosition = function() {}
+    }
+    return this.getResource(pos);
   },
 
   getResource: function() {
@@ -26,7 +29,7 @@ const L20nParser = {
         resource.body.push(this.getEntry());
       } catch (e) {
         if (e instanceof L10nError) {
-          resource._errors.append(e)
+          resource._errors.push(e)
           resource.body.push(this.getJunkEntry());
         } else {
           throw e;
@@ -462,34 +465,23 @@ const L20nParser = {
 
   getJunkEntry: function() {
     const pos = this._index;
-    const nextEntity = this._source.indexOf('<', pos);
-    const nextComment = this._source.indexOf('/*', pos);
+    let nextEntity = this._source.indexOf('<', pos);
+    let nextComment = this._source.indexOf('/*', pos);
 
-    // guard against -1
-    let nextEntry = Math.min(nextEntity, nextComment);
-
-    if (nextEntry === -1) {
-      nextEntry = this._length;
+    if (nextEntity === -1) {
+      nextEntity = this._length;
     }
+    if (nextComment === -1) {
+      nextComment = this._length;
+    }
+
+    let nextEntry = Math.min(nextEntity, nextComment);
 
     this._index = nextEntry;
 
-    return new AST.JunkEntry(this._source.slice(this._curEntryStart, nextEntry));
+    return new AST.JunkEntry(
+      this._source.slice(this._curEntryStart, nextEntry));
   }
 };
 
-var l20nCode = `<next[@cldr.global($n)] {
- *one: "One \\u1234 \\{{ foo }} item",
- *many: "{{ $n }} items"
-}
- ariaLabel: "item list">`;
-
-var source = '';
-
-for (var i = 0; i < 1; i++) {
-  source += l20nCode;
-}
-
-var ast = L20nParser.parse(source);
-
-console.log(JSON.stringify(ast, null, 2));
+module.exports = L20nParser;

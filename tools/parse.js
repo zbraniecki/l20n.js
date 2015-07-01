@@ -15,6 +15,7 @@ program
   .usage('[options] [file]')
   .option('-r, --raw', 'Print raw JSON')
   .option('-n, --no-color', 'Print errors to stderr without color')
+  .option('-p, --position', 'Save nodes position')
   .parse(process.argv);
 
 
@@ -25,7 +26,7 @@ function print(type, err, data) {
 
   var ast;
   try {
-    ast = lib.parse(type, data.toString());
+    ast = lib.parse(type, data.toString(), program.position);
   } catch (e) {
     console.error(makeError(e));
     process.exit(1);

@@ -4,14 +4,14 @@ require('colors');
 require('../../node_modules/babel-core/register');
 var PropertiesParser =
   require('../../src/lib/format/properties/parser');
-var L20nParser = require('../../src/lib/format/l20n/parser');
+var L20nParser = require('../../src/lib/format/l20n/full');
 
-exports.parse = function(type, text) {
+exports.parse = function(type, text, pos) {
   switch (type) {
     case 'properties':
       return PropertiesParser.parse(null, text);
     case 'l20n':
-      return L20nParser.parse(null, text);
+      return L20nParser.parse(null, text, pos);
   }
 };
 
