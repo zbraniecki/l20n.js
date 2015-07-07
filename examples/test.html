@@ -1,0 +1,99 @@
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title data-l10n-id="title"></title>
+
+    <meta name="defaultLanguage" content="en-US">
+    <meta name="availableLanguages" content="en-US, fr">
+    <link rel="localization" href="locales/example.{locale}.l20n">
+    <script>
+const observerConfig = {
+  attributes: true,
+  characterData: false,
+  childList: true, // true
+  subtree: true,
+  attributeFilter: ['data-l10n-id', 'data-l10n-args']
+};
+
+function startObserver() {
+  var observer = new MutationObserver(onMutations);
+  observer.observe(document, observerConfig);
+}
+
+function onMutations(...args) {
+  console.log(args);
+}
+
+function insertNode() {
+  // error non-l10n-id inserted
+  var d = document.createElement('div');
+  d.setAttribute('id', 'node1');
+  d.setAttribute('data-l10n-id', 'foo');
+  document.body.appendChild(d);
+}
+
+function insertFragment() {
+  // error I care only about nodes in this fragment with data-l10n-id
+  var f = document.createDocumentFragment();
+  var d = document.createElement('div');
+  d.setAttribute('id', 'fragment1');
+  var d2 = document.createElement('div');
+  //d3.setAttribute('data-l10n-id', 'foo');
+  d.appendChild(d2);
+  f.appendChild(d);
+  document.body.appendChild(f);
+}
+
+function removeNode() {
+  // error because I care only about elements with data-l10n-id
+  var node = document.getElementById('node1');
+  document.body.removeChild(node);
+}
+
+function removeFragment() {
+  // error because I care only about elements with data-l10n-id
+  var node = document.getElementById('fragment1');
+  document.body.removeChild(node);
+}
+
+function modifyNode() {
+  var node = document.getElementById('node1');
+  node.setAttribute('aria-label', 'foo');
+  var x = document.createElement('p');
+  node.appendChild(x);
+}
+
+function modifyFragment() {
+  var node = document.getElementById('fragment1');
+  node.getElementsByTagName('div')[0].setAttribute('data-l10n-id', 'foo');
+}
+
+function setAttribute2() {
+  var node = document.getElementById('node1');
+  node.setAttribute('data-l10n-id', 'foo');
+}
+
+function modifyAttribute() {
+  var node = document.getElementById('node1');
+  node.setAttribute('data-l10n-id', 'foo2');
+}
+
+function removeAttribute2() {
+  var node = document.getElementById('node1');
+  node.removeAttribute('data-l10n-id');
+}
+    </script>
+  </head>
+
+  <body onload="startObserver()">
+    <button onclick="insertNode()">Insert Node</button>
+    <button onclick="insertFragment()">Insert Fragment</button>
+    <button onclick="removeNode()">Remove Node</button>
+    <button onclick="removeFragment()">Remove Fragment</button>
+    <button onclick="modifyNode()">Modify Node</button>
+    <button onclick="modifyFragment()">Modify Fragment</button>
+    <button onclick="setAttribute2()">Set Attribute</button>
+    <button onclick="modifyAttribute()">Modify Attribute</button>
+    <button onclick="removeAttribute2()">Remove Attribute</button>
+  </body>
+</html>
