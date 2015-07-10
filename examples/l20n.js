@@ -1,4 +1,3 @@
-console.log('l20n.js start');
 
 let promises = [];
 
@@ -6,7 +5,6 @@ let promises = [];
 let l10nResLinks = document.head.querySelectorAll('link[rel=localization]');
 
 for (link of l10nResLinks) {
-  console.log(link.ready);
   promises.push(link.ready);
 };
 

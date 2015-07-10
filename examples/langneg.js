@@ -1,57 +1,44 @@
 (function() {
 
-  console.log('langneg start');
-
   const observerConfig = {
-    attributes: false,
+    attributes: true,
     characterData: false,
-    childList: true,
+    childList: false,
     subtree: false,
   };
 
+  var htmlElement = document.documentElement;
   var observer = new MutationObserver(onMutations);
-  observer.observe(document.head, observerConfig);
+  observer.observe(htmlElement, observerConfig);
+
+  function onMutations(mutations) {
+    console.log(mutations);
+  }
 
   let l10nMeta = new Map();
   let localeChain = new Set();
-  let languagesResolve;
 
-  function onMutations(mutations) {
-    for (let mutation of mutations) {
-      for (let addedNode of mutation.addedNodes) {
-        if (addedNode.nodeType === Node.ELEMENT_NODE) {
-          onAddedHeadElement(addedNode);
-        }
-      }
+  function getLangRevisionMap(str) {
+    return str.split(',');
+  }
+
+  for (let key of ['defaultLanguage', 'availableLanguages',
+      'requestedLanguages']) {
+    if (htmlElement.hasAttribute(key)) {
+      l10nMeta.set(key, getLangRevisionMap(htmlElement.getAttribute(key)));
     }
   }
 
-  function onAddedHeadElement(element) {
-    if (element.nodeName === 'META') {
-      let name = element.getAttribute('name');
-      if (name === 'defaultLanguage' || name === 'availableLanguages') {
-        l10nMeta.set(name, element.getAttribute('content'));
-        if (l10nMeta.size === 2) {
-          observer.disconnect();
-          negotiateLocales();
-        }
-      }
-    }
-  }
+  negotiateLocales();
 
   function negotiateLocales() {
     localeChain.add('en-US');
     localeChain.add('fr');
-    languagesResolve(localeChain);
   }
 
   document.l10n = {
     languages: new Promise(function(resolve, reject) {
-      if (localeChain.size) {
-        resolve(localeChain);
-      } else {
-        languagesResolve = resolve;
-      }
+      resolve(localeChain);
     })
   };
 })();
