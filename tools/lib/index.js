@@ -9,7 +9,7 @@ exports.parse = function(fileformat, output, text) {
   var module = fileformat === 'properties' ?
     '../../src/lib/format/properties/parser' :
     '../../src/lib/format/' + fileformat + '/' + output + '/parser';
-  return require(module).parse(null, text);
+  return require(module).parseResource(text);
 };
 
 exports.color = function(str, col) {
