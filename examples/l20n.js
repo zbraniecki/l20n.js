@@ -28,9 +28,6 @@ whenInteractive(init);
 
 
 function init() {
-  let promises = [];
-
-
   let l10nResLinks =
     [...document.head.querySelectorAll('link[rel=localization]')];
 
@@ -52,3 +49,17 @@ function init() {
   });
 }
 
+var formatter = mozIntl.DateTimeFormat(navigator.languages, {
+  hour12: true,
+  dayperiod: false,
+  hour: 'numeric',
+});
+
+console.log(formatter.format(new Date()));
+
+var formatter = mozIntl.DateTimeFormat(navigator.languages, {
+  hour12: true,
+  dayperiod: true,
+});
+
+console.log(formatter.format(new Date()));
