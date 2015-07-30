@@ -1,11 +1,11 @@
 (function() {
 /*
- Language Negotiation API
+ L10n API
 
  Description: The API allows clients to retrieve, modify and operate on
  the three input variables for language negotiation:
-  - default language
-  - available languages
+  - default locale
+  - available locales
   - requested languages (by default equals to navigator.languages)
 
 
@@ -14,22 +14,22 @@
  HTML:
 
  <html
-   availablelanguages="en-US, fr, pl"
-   defaultlanguage="en-US"
-   requestedlanguages="pl, en-US">
+   availablelocales="en-US, fr, pl"
+   defaultlocale="en-US"
+   requestedlocales="pl, en-US">
 
  JS:
 
- document.l10n.availableLanguages => returns a Set
- document.l10n.defaultLanguage = returns a string
- document.l10n.requestedLanguages => returns a Set
+ document.l10n.availableLocales => returns a Set
+ document.l10n.defaultLocale = returns a string
+ document.l10n.requestedLocales => returns a Set
 
- document.l10n.languages => returns a Promise that resolves to Set
+ document.l10n.locales => returns a Promise that resolves to Set
 
  Event:
 
  document.onLocaleChainChange - event fired on document element when
-   the value of document.l10n.languages changed.
+   the value of document.l10n.locales changed.
 */
 
   function onMutations(mutations) {
@@ -43,20 +43,15 @@
 
   function getLangRevisionMap(str) {
     //XXX: allow availableLanguages to have version integer
-    return str.split(',');
-  }
-
-  function prioritizeLocales() {
-    //XXX: figure out how to fit it into langpacks without having to
-    // standardize langpack API
-    let localeChain = new Set();
-    localeChain.add('en-US');
-    localeChain.add('fr');
-    return localeChain;
+    return str.split(',').map(String.trim);
   }
 
   function negotiateLocales() {
-    let newChain = prioritizeLocales();
+    let newChain = Locale.PrioritizeAvailableLocales(
+      l10nMeta.get('availablelocales'),
+      l10nMeta.get('requestedlocales'),
+      l10nMeta.get('defaultlocale')
+    );
     //XXX: real set equality test
     if (newChain !== localeChain) {
       localeChain = newChain;
@@ -73,7 +68,7 @@
 
   function onL10nMetaValueSetFromHTML(key) {
     let value;
-    if (key === 'defaultlanguage') {
+    if (key === 'defaultlocale') {
       value = getLangRevisionMap(htmlElement.getAttribute(key))[0];
     } else {
       value = new Set(getLangRevisionMap(htmlElement.getAttribute(key)));
@@ -84,8 +79,8 @@
   /* Init */
 
   const htmlElement = document.documentElement;
-  const attributes = new Set(['defaultlanguage', 'availablelanguages',
-      'requestedlanguages']);
+  const attributes = new Set(['defaultlocale', 'availablelocales',
+      'requestedlocales']);
   let l10nMeta = new Map();
   let localeChain = new Set();
 
@@ -110,40 +105,45 @@
   negotiateLocales();
 
   document.l10n = {
-    languages: new Promise(function(resolve, reject) {
+    locales: new Promise(function(resolve, reject) {
+      // here we will have locales as we use them, like 'en'
       resolve(localeChain);
     }),
-    get defaultLanguage() {
-      //XXX: Modifying the set should trigger negotiation
-      return l10nMeta.get('defaultlanguage');
+    get supportedLocales() {
+      // here we will have locales as user passed them, like 'en-CA'
+      return new Set(['en-US']);
     },
-    set defaultLanguage(newValue) {
-      if (l10nMeta.get('defaultlanguage') !== newValue) {
-        l10nMeta.set('defaultlanguage', newValue);
+    get defaultLocale() {
+      //XXX: Modifying the set should trigger negotiation
+      return l10nMeta.get('defaultlocale');
+    },
+    set defaultLocale(newValue) {
+      if (l10nMeta.get('defaultlocale') !== newValue) {
+        l10nMeta.set('defaultlocale', newValue);
         negotiateLocales();
       }
     },
-    get availableLanguages() {
-      return l10nMeta.get('availablelanguages');
+    get availableLocales() {
+      return l10nMeta.get('availablelocales');
     },
-    set availableLanguages(newValue) {
+    set availableLocales(newValue) {
       //XXX: real set equality test
-      if (l10nMeta.get('availablelanguages') !== newValue) {
-        l10nMeta.set('availablelanguages', newValue);
+      if (l10nMeta.get('availablelocales') !== newValue) {
+        l10nMeta.set('availablelocales', newValue);
         negotiateLocales();
       }
     },
-    get requestedLanguages() {
+    get requestedLocales() {
       //XXX: Modifying the set should trigger negotiation
-      if (l10nMeta.has('requestedLanguages')) {
-        return l10nMeta.get('requestedLanguages');
+      if (l10nMeta.has('requestedLocales')) {
+        return l10nMeta.get('requestedLocales');
       }
       return navigator.languages;
     },
-    set requestedLanguages(newValue) {
+    set requestedLocales(newValue) {
       //XXX: real set equality test
-      if (l10nMeta.get('requestedLanguages') !== newValue) {
-        l10nMeta.set('requestedLanguages', newValue);
+      if (l10nMeta.get('requestedLocales') !== newValue) {
+        l10nMeta.set('requestedLocales', newValue);
         negotiateLocales();
       }
     },

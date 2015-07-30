@@ -24,7 +24,7 @@
     if (element.nodeName === 'LINK' &&
         element.getAttribute('rel') === 'localization') {
 
-      element.ready = document.l10n.languages.then(langs => {
+      element.ready = document.l10n.locales.then(langs => {
         let currentLocale = [...langs][0];
         let href = element.getAttribute('href');
         href = href.replace('{locale}', currentLocale);

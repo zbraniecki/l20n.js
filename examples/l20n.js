@@ -1,26 +1,54 @@
-
-let promises = [];
-
-
-let l10nResLinks = document.head.querySelectorAll('link[rel=localization]');
-
-for (link of l10nResLinks) {
-  promises.push(link.ready);
+const readyStates = {
+  loading: 0,
+  interactive: 1,
+  complete: 2
 };
 
+function whenInteractive(callback) {
+  if (readyStates[document.readyState] >= readyStates.interactive) {
+    return callback();
+  }
 
-Promise.all(promises).then(function (resources) {
-  return Promise.all(resources.map(function(response) {
-    if (!response.ok) {
-      console.log('error fetching ' + response.url);
-      return;
+  document.addEventListener('readystatechange', function onrsc() {
+    if (readyStates[document.readyState] >= readyStates.interactive) {
+      document.removeEventListener('readystatechange', onrsc);
+      callback();
     }
-    if (response.url.endsWith('.json')) {
-      return response.json();
-    } else {
-      return response.text();
-    }
-  }).filter(n => n !== undefined));
-}).then(function(responses) {
-  console.log(responses);
-});
+  });
+}
+
+whenInteractive(init);
+
+
+
+
+
+
+
+
+
+function init() {
+  let promises = [];
+
+
+  let l10nResLinks =
+    [...document.head.querySelectorAll('link[rel=localization]')];
+
+
+  Promise.all(l10nResLinks.map(link => link.ready)).then(function (resources) {
+    return Promise.all(resources.map(function(response) {
+      if (!response.ok) {
+        console.log('error fetching ' + response.url);
+        return;
+      }
+      if (response.url.endsWith('.json')) {
+        return response.json();
+      } else {
+        return response.text();
+      }
+    }));
+  }).then(function(responses) {
+    console.log(responses);
+  });
+}
+
