@@ -1,5 +1,8 @@
 (function() {
 
+// https://w3c.github.io/resource-hints/
+// https://bugzilla.mozilla.org/show_bug.cgi?id=1177203
+
   const observerConfig = {
     attributes: false,
     characterData: false,
