@@ -1,5 +1,24 @@
 (function(global) {
 
+  /**
+   * 1) Introduce a global `Locale` object with a set of static methods
+   * that allow to operate on language tags and negotiate locales
+   *
+   * Initially expose three functions that are currently inside Intl
+   *
+   *   - CanonicalizeLocaleList
+   *   - ResolveLocale
+   *   - SupportedLocales
+   *
+   * And introduce a new function:
+   * 
+   *   - PrioritizeAvailableLocales
+   *
+   * Future extensions:
+   * - Operations on LangugageTag
+   * - Language Tag comparators
+   **/
+
   var unicodeLocaleExtensionSequence = "-u(-[a-z0-9]{2,8})+";
   var unicodeLocaleExtensionSequenceRE = new RegExp(unicodeLocaleExtensionSequence);
   var unicodeLocaleExtensionSequenceGlobalRE = new RegExp(unicodeLocaleExtensionSequence, "g");

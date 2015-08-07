@@ -1,5 +1,21 @@
 (function() {
 
+  /**
+   * Custom Link, with optional URL Template:
+   *
+   * <link rel="localization" href="./path/to/{locale}.resource"></link>
+   *
+   * JS:
+   *
+   * linkElement.loaded is a Promise
+   *
+   * linkElement.data.locale = 'en-US';
+   * linkElement.addEventListener('load', cb);
+   *
+   * Could be later standardized for l10n and themes so that platform
+   * can provide the variables for certain rel types.
+   **/
+
 // https://w3c.github.io/resource-hints/
 // https://bugzilla.mozilla.org/show_bug.cgi?id=1177203
 
