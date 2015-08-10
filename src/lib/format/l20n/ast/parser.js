@@ -488,12 +488,11 @@ class ParseContext {
 
     const junk = new AST.JunkEntry(
       this._source.slice(this._curEntryStart, nextEntry));
-    if (this._config.pos) {
-      junk._pos = {start: this._curEntryStart, end: nextEntry};
-    }
+
+    this.setPosition(junk, this._curEntryStart, nextEntry);
     return junk;
   }
-};
+}
 
 export default {
   parseResource: function(string, pos = false) {
