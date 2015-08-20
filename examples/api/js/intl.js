@@ -67,7 +67,26 @@
    *     - 2 | start | middle | end
    *     - gender for list (neutral | mixedNeutral | maleTaints)
    *   - ContextTransform Elements
+   *     - when to use capital letters
    *   - Choice Patterns
+   *     - autocompletion
+   *     - emoji
+   * - Number.
+   *  - Elements
+   *    - timeSeparator (00:00)
+   *  - Format
+   *    - "atLeast" for "99+"
+   *    - range for "99-103"
+   *    - plural rules
+   *    - plural ranges
+   *    - rule based number formatting
+   *
+   * - DateTime
+   *  - Elements
+   *  - Format 
+   * - Collation
+   * - Supplemental
+   * - Keyboards
    **/
   global.mozIntl = {
     DateTimeFormat: function(locales, options) {
