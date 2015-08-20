@@ -30,6 +30,10 @@
 
  document.onLocaleChainChange - event fired on document element when
    the value of document.l10n.locales changed.
+
+
+https://www.w3.org/2001/tag/doc/promises-guide
+ 
 */
 
   function onMutations(mutations) {
