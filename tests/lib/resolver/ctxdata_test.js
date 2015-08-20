@@ -1,8 +1,8 @@
 'use strict';
 
 import assert from 'assert';
-import { format, createEntries } from './header';
-import { MockContext } from './header';
+import { isolate as i } from '../util';
+import { format, lang, createEntries, MockContext } from './header';
 
 describe('Context data', function(){
   var entries, ctx, args;
@@ -26,18 +26,18 @@ describe('Context data', function(){
     });
 
     it('can be referenced from strings', function() {
-      var value = format(ctx, args, entries.unread)[1];
-      assert.strictEqual(value, 'Unread notifications: 3');
+      var value = format(ctx, lang, args, entries.unread)[1];
+      assert.strictEqual(value, i('Unread notifications: 3', '3'));
     });
 
     it('can be passed as argument to a macro', function() {
-      var value = format(ctx, args, entries.unreadPlural)[1];
-      assert.strictEqual(value, '3 unread notifications');
+      var value = format(ctx, lang, args, entries.unreadPlural)[1];
+      assert.strictEqual(value, i('3 unread notifications', '3'));
     });
 
     it('takes priority over entities of the same name', function() {
-      var value = format(ctx, args, entries.useFoo)[1];
-      assert.strictEqual(value, 'Foo');
+      var value = format(ctx, lang, args, entries.useFoo)[1];
+      assert.strictEqual(value, i('Foo'));
     });
 
   });
@@ -63,40 +63,40 @@ describe('Context data', function(){
 
     it('returns the raw string when a missing property of args is ' +
        'referenced', function(){
-      var value = format(ctx, args, entries.missingReference)[1];
-      assert.strictEqual(value, '{{ missing }}');
+      var value = format(ctx, lang, args, entries.missingReference)[1];
+      assert.strictEqual(value, i('{{ missing }}'));
     });
 
     it('returns the raw string when an object is referenced', function(){
-      var value = format(ctx, args, entries.nestedReference)[1];
-      assert.strictEqual(value, '{{ nested }}');
+      var value = format(ctx, lang, args, entries.nestedReference)[1];
+      assert.strictEqual(value, i('{{ nested }}'));
     });
 
     it('returns the raw string when watch is referenced', function(){
-      var value = format(ctx, args, entries.watchReference)[1];
-      assert.strictEqual(value, '{{ watch }}');
+      var value = format(ctx, lang, args, entries.watchReference)[1];
+      assert.strictEqual(value, i('{{ watch }}'));
     });
 
     it('returns the raw string when hasOwnProperty is referenced', function(){
       var value = format(
-        ctx, args, entries.hasOwnPropertyReference)[1];
-      assert.strictEqual(value, '{{ hasOwnProperty }}');
+        ctx, lang, args, entries.hasOwnPropertyReference)[1];
+      assert.strictEqual(value, i('{{ hasOwnProperty }}'));
     });
 
     it('returns the raw string when isPrototypeOf is referenced', function(){
       var value = format(
-        ctx, args, entries.isPrototypeOfReference)[1];
-      assert.strictEqual(value, '{{ isPrototypeOf }}');
+        ctx, lang, args, entries.isPrototypeOfReference)[1];
+      assert.strictEqual(value, i('{{ isPrototypeOf }}'));
     });
 
     it('returns the raw string when toString is referenced', function(){
-      var value = format(ctx, args, entries.toStringReference)[1];
-      assert.strictEqual(value, '{{ toString }}');
+      var value = format(ctx, lang, args, entries.toStringReference)[1];
+      assert.strictEqual(value, i('{{ toString }}'));
     });
 
     it('returns the raw string when __proto__ is referenced', function(){
-      var value = format(ctx, args, entries.protoReference)[1];
-      assert.strictEqual(value, '{{ __proto__ }}');
+      var value = format(ctx, lang, args, entries.protoReference)[1];
+      assert.strictEqual(value, i('{{ __proto__ }}'));
     });
 
   });
@@ -121,23 +121,23 @@ describe('Context data', function(){
 
     it('returns a string value', function(){
       assert.strictEqual(
-        format(ctx, args, entries.stringProp)[1], 'string');
+        format(ctx, lang, args, entries.stringProp)[1], i('string'));
     });
 
     it('throws when used in a macro', function(){
       assert.throws(function() {
-        format(ctx, args, entries.stringIndex);
+        format(ctx, lang, args, entries.stringIndex);
       }, 'Unresolvable value');
     });
 
     it('digit returns a string value', function(){
       assert.strictEqual(
-        format(ctx, args, entries.stringNumProp)[1], '1');
+        format(ctx, lang, args, entries.stringNumProp)[1], i('1'));
     });
 
     it('digit throws when used in a macro', function(){
       assert.throws(function() {
-        format(ctx, args, entries.stringNumIndex);
+        format(ctx, lang, args, entries.stringNumIndex);
       }, 'Unresolvable value');
     });
 
@@ -162,22 +162,22 @@ describe('Context data', function(){
     });
 
     it('returns a number value', function(){
-      assert.strictEqual(format(ctx, args, entries.numProp)[1], '1');
+      assert.strictEqual(format(ctx, lang, args, entries.numProp)[1], i('1'));
     });
 
     it('returns a value when used in macro', function(){
       assert.strictEqual(
-        format(ctx, args, entries.numIndex)[1], 'One');
+        format(ctx, lang, args, entries.numIndex)[1], 'One');
     });
 
     it('returns the raw string when NaN is referenced', function(){
-      var value = format(ctx, args, entries.nanProp)[1];
-      assert.strictEqual(value, '{{ nan }}');
+      var value = format(ctx, lang, args, entries.nanProp)[1];
+      assert.strictEqual(value, i('{{ nan }}'));
     });
 
     it('is undefined when NaN is used in macro', function(){
       assert.throws(function() {
-        format(ctx, args, entries.nanIndex);
+        format(ctx, lang, args, entries.nanIndex);
       }, 'Arg must be a string or a number: nan');
     });
 
@@ -198,13 +198,13 @@ describe('Context data', function(){
     });
 
     it('returns the raw string when referenced', function(){
-      var value = format(ctx, args, entries.boolProp)[1];
-      assert.strictEqual(value, '{{ bool }}');
+      var value = format(ctx, lang, args, entries.boolProp)[1];
+      assert.strictEqual(value, i('{{ bool }}'));
     });
 
     it('is undefined when used in a macro', function(){
       assert.throws(function() {
-        format(ctx, args, entries.boolIndex);
+        format(ctx, lang, args, entries.boolIndex);
       }, 'Arg must be a string or a number: bool');
     });
 
@@ -225,13 +225,13 @@ describe('Context data', function(){
     });
 
     it('returns the raw string when referenced', function(){
-      var value = format(ctx, args, entries.undefProp)[1];
-      assert.strictEqual(value, '{{ undef }}');
+      var value = format(ctx, lang, args, entries.undefProp)[1];
+      assert.strictEqual(value, i('{{ undef }}'));
     });
 
     it('is undefined when used in a macro', function(){
       assert.throws(function() {
-        format(ctx, args, entries.undefIndex);
+        format(ctx, lang, args, entries.undefIndex);
       }, 'Arg must be a string or a number: undef');
     });
 
@@ -252,13 +252,13 @@ describe('Context data', function(){
     });
 
     it('returns the raw string', function(){
-      var value = format(ctx, args, entries.nullProp)[1];
-      assert.strictEqual(value, '{{ nullable }}');
+      var value = format(ctx, lang, args, entries.nullProp)[1];
+      assert.strictEqual(value, i('{{ nullable }}'));
     });
 
     it('is undefined when used in a macro', function(){
       assert.throws(function() {
-        format(ctx, args, entries.nullIndex);
+        format(ctx, lang, args, entries.nullIndex);
       }, 'Arg must be a string or a number: nullable');
     });
 
@@ -279,13 +279,13 @@ describe('Context data', function(){
     });
 
     it('returns the raw string', function(){
-      var value = format(ctx, args, entries.arrProp)[1];
-      assert.strictEqual(value, '{{ arr }}');
+      var value = format(ctx, lang, args, entries.arrProp)[1];
+      assert.strictEqual(value, i('{{ arr }}'));
     });
 
     it('is undefined when used in a macro', function(){
       assert.throws(function() {
-        format(ctx, args, entries.arrIndex);
+        format(ctx, lang, args, entries.arrIndex);
       }, 'Arg must be a string or a number: arr');
     });
 
@@ -306,13 +306,13 @@ describe('Context data', function(){
     });
 
     it('returns the raw string', function(){
-      var value = format(ctx, args, entries.arrProp)[1];
-      assert.strictEqual(value, '{{ arr }}');
+      var value = format(ctx, lang, args, entries.arrProp)[1];
+      assert.strictEqual(value, i('{{ arr }}'));
     });
 
     it('is undefined when used in a macro', function(){
       assert.throws(function() {
-        format(ctx, args, entries.arrIndex);
+        format(ctx, lang, args, entries.arrIndex);
       }, 'Arg must be a string or a number: arr');
     });
 
@@ -335,13 +335,13 @@ describe('Context data', function(){
     });
 
     it('returns the raw string', function(){
-      var value = format(ctx, args, entries.objProp)[1];
-      assert.strictEqual(value, '{{ obj }}');
+      var value = format(ctx, lang, args, entries.objProp)[1];
+      assert.strictEqual(value, i('{{ obj }}'));
     });
 
     it('throws used in a macro', function(){
       assert.throws(function() {
-        format(ctx, args, entries.objIndex);
+        format(ctx, lang, args, entries.objIndex);
       }, 'Arg must be a string or a number: obj');
     });
   });

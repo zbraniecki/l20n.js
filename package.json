@@ -1,18 +1,13 @@
 {
   "name": "l20n",
   "description": "A localization library for Firefox OS",
-  "version": "3.0.0-pre",
+  "version": "4.0.0-pre",
   "homepage": "http://l20n.org",
   "author": "Mozilla <l10n-drivers@mozilla.org>",
-  "licenses": [
-    {
-      "type": "Apache 2.0",
-      "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
-    }
-  ],
+  "license": "Apache-2.0",
   "contributors": [
     {
-      "name": "Zbigniew Braniecki",
+      "name": "Zibi Braniecki",
       "email": "zbraniecki@mozilla.com"
     },
     {
@@ -22,12 +17,14 @@
   ],
   "bugs": "https://bugzilla.mozilla.org/enter_bug.cgi?product=Firefox%20OS&component=Gaia::L10n",
   "scripts": {
-    "test": "grunt merge-conflict lint test"
+    "test": "grunt merge-conflict lint test",
+    "prepublish": "grunt webpack"
   },
   "directories": {
     "lib": "./src"
   },
-  "main": "./src/runtime/node/index.js",
+  "main": "./dist/node/l20n.js",
+  "browser": "./dist/web/l20n-common.js",
   "repository": {
     "type": "git",
     "url": "https://github.com/l20n/l20n.js.git"
@@ -37,12 +34,13 @@
     "l10n"
   ],
   "devDependencies": {
-    "babel-core": "~5.4.7",
+    "babel-core": "~5.6.17",
     "babel-loader": "^5.0.0",
     "colors": "~0.6.0",
     "commander": "~2.0",
     "grunt": "~0.4.1",
     "grunt-babel": "^5.0.0",
+    "grunt-cli": "^0.1.13",
     "grunt-contrib-clean": "~0.5.0",
     "grunt-contrib-copy": "~0.4.1",
     "grunt-contrib-jshint": "^0.11.1",
@@ -57,12 +55,10 @@
     "load-grunt-tasks": "~0.1.0",
     "prettyjson": "~0.8.0",
     "should": "~1.3.0",
+    "string.prototype.endswith": "^0.2.0",
     "webpack": "^1.8.4"
   },
   "engine": {
-    "node": ">=0.10 <0.12"
-  },
-  "dependencies": {
-    "promise": "^6.0.1"
+    "node": ">=0.12"
   }
 }

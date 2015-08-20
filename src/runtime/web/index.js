@@ -2,7 +2,6 @@
 
 import { fetch } from './io';
 import { Service } from '../../bindings/html/service';
-import { setAttributes, getAttributes } from '../../bindings/html/dom';
 
 const readyStates = {
   loading: 0,
@@ -24,22 +23,10 @@ function whenInteractive(callback) {
 }
 
 function init() {
-  window.L10n = new Service(fetch);
-  window.L10n.requestLanguages(navigator.languages);
-  window.addEventListener('languagechange', window.L10n);
-  document.addEventListener('additionallanguageschange', window.L10n);
+  const service = new Service(fetch);
+  window.addEventListener('languagechange', service);
+  document.addEventListener('additionallanguageschange', service);
+  document.l10n.languages = navigator.languages;
 }
 
 whenInteractive(init);
-
-// XXX for easier testing with existing Gaia apps; remove later on
-let once = callback => whenInteractive(
-  () => document.l10n.ready.then(callback));
-
-navigator.mozL10n = {
-  get: id => id,
-  once: once,
-  ready: once,
-  setAttributes: setAttributes,
-  getAttributes: getAttributes
-};

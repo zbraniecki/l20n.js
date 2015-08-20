@@ -7,7 +7,7 @@ import { negotiateLanguages } from './langs';
 
 export class Service {
   constructor(fetch) {
-    let meta = getMeta(document.head);
+    const meta = getMeta(document.head);
     this.defaultLanguage = meta.defaultLang;
     this.availableLanguages = meta.availableLangs;
     this.appVersion = meta.appVersion;
@@ -17,6 +17,9 @@ export class Service {
     this.views = [
       document.l10n = new View(this, document)
     ];
+
+    this.env.addEventListener('deprecatewarning',
+      err => console.warn(err));
   }
 
   requestLanguages(requestedLangs = navigator.languages) {
@@ -45,7 +48,7 @@ function translateViews(langs) {
 }
 
 function changeLanguages(additionalLangs, requestedLangs) {
-  let prevLangs = this.languages || [];
+  const prevLangs = this.languages || [];
   return this.languages = Promise.all([
     additionalLangs, prevLangs]).then(
       ([additionalLangs, prevLangs]) => negotiateLanguages(

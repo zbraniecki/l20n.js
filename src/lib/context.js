@@ -10,43 +10,19 @@ export class Context {
     this._resIds = resIds;
   }
 
-  fetch(langs) {
-    // XXX add arg: count of langs to fetch
-    return this._fetchResources(langs);
-  }
-
-  formatValue(langs, id, args) {
-    return this.fetch(langs).then(
-      this._fallback.bind(this, Context.prototype._formatValue, id, args));
-  }
-
-  formatEntity(langs, id, args) {
-    return this.fetch(langs).then(
-      this._fallback.bind(this, Context.prototype._formatEntity, id, args));
-  }
-
-  /* private */
-
-  _formatTuple(args, entity) {
+  _formatTuple(lang, args, entity, id, key) {
     try {
-      return format(this, args, entity);
+      return format(this, lang, args, entity);
     } catch (err) {
+      err.id = key ? id + '::' + key : id;
+      err.lang = lang;
       this._env.emit('resolveerror', err, this);
       return [{ error: err }, err.id];
     }
   }
 
-  _formatValue(args, entity) {
-    if (typeof entity === 'string') {
-      return entity;
-    }
-
-    // take the string value only
-    return this._formatTuple.call(this, args, entity)[1];
-  }
-
-  _formatEntity(args, entity) {
-    const [, value] = this._formatTuple.call(this, args, entity);
+  _formatEntity(lang, args, entity, id) {
+    const [, value] = this._formatTuple.call(this, lang, args, entity, id);
 
     const formatted = {
       value,
@@ -55,19 +31,18 @@ export class Context {
 
     if (entity.attrs) {
       formatted.attrs = Object.create(null);
-    }
-
-    for (let key in entity.attrs) {
-      /* jshint -W089 */
-      let [, attrValue] = this._formatTuple.call(
-        this, args, entity.attrs[key]);
-      formatted.attrs[key] = attrValue;
+      for (let key in entity.attrs) {
+        /* jshint -W089 */
+        const [, attrValue] = this._formatTuple.call(
+          this, lang, args, entity.attrs[key], id, key);
+        formatted.attrs[key] = attrValue;
+      }
     }
 
     return formatted;
   }
 
-  _fetchResources(langs) {
+  fetch(langs) {
     if (langs.length === 0) {
       return Promise.resolve(langs);
     }
@@ -78,36 +53,35 @@ export class Context {
           () => langs);
   }
 
-  _fallback(method, id, args, langs) {
-    let lang = langs[0];
+  resolve(langs, id, args) {
+    const lang = langs[0];
 
     if (!lang) {
-      let err = new L10nError(
-        '"' + id + '"' + ' not found in any language.', id);
-      this._env.emit('notfounderror', err, this);
-      return id;
+      this._env.emit('notfounderror', new L10nError(
+        '"' + id + '"' + ' not found in any language', id), this);
+      return { value: id, attrs: null };
     }
 
-    let entity = this._getEntity(lang, id);
+    const entity = this._getEntity(lang, id);
 
     if (entity) {
-      return method.call(this, args, entity);
+      return Promise.resolve(
+        this._formatEntity(lang, args, entity, id));
     } else {
-      let err = new L10nError(
-        '"' + id + '"' + ' not found in ' + lang.code + '.', id, lang.code);
-      this._env.emit('notfounderror', err, this);
+      this._env.emit('notfounderror', new L10nError(
+        '"' + id + '"' + ' not found in ' + lang.code, id, lang), this);
     }
 
-    return this._fetchResources(langs.slice(1)).then(
-      this._fallback.bind(this, method, id, args));
+    return this.fetch(langs.slice(1)).then(
+      nextLangs => this.resolve(nextLangs, id, args));
   }
 
   _getEntity(lang, id) {
-    var cache = this._env._resCache;
+    const cache = this._env._resCache;
 
     // Look for `id` in every resource in order.
-    for (var i = 0, resId; resId = this._resIds[i]; i++) {
-      var resource = cache[resId + lang.code + lang.src];
+    for (let i = 0, resId; resId = this._resIds[i]; i++) {
+      const resource = cache[resId + lang.code + lang.src];
       if (resource instanceof L10nError) {
         continue;
       }

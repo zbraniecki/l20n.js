@@ -2,6 +2,7 @@
 
 import { readFile } from 'fs';
 import { L10nError } from '../../lib/errors';
+import 'string.prototype.endswith';
 
 function load(url) {
   return new Promise(function(resolve, reject) {
@@ -16,7 +17,7 @@ function load(url) {
 }
 
 export function fetch(res, lang) {
-  let url = res.replace('{locale}', lang.code);
+  const url = res.replace('{locale}', lang.code);
   return res.endsWith('.json') ?
     load(url).then(JSON.parse) : load(url);
 }

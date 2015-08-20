@@ -9,6 +9,7 @@ var program = require('commander');
 require('../node_modules/babel-core/register');
 var Resolver = require('../src/lib/resolver');
 var MockContext = require('../tests/lib/resolver/header').MockContext;
+var lang = require('../src/lib/mocks').lang;
 var lib = require('./lib');
 var color = lib.color.bind(program);
 var makeError = lib.makeError.bind(program);
@@ -38,7 +39,7 @@ function singleline(formatted) {
 
 function format(ctx, entity) {
   try {
-    return singleline(Resolver.format(ctx, data, entity));
+    return singleline(Resolver.format(ctx, lang, data, entity));
   } catch(err) {
     return makeError(err);
   }
@@ -56,31 +57,23 @@ function printEntry(ctx, id, entity) {
   }
 }
 
-function createEntries(lang, ast) {
-  return ast.reduce(function(seq, cur) {
-    seq[cur.$i] = Resolver.createEntry(cur, lang);
-    return seq;
-  }, Object.create(null));
-}
-
-function print(type, err, data) {
+function print(fileformat, err, data) {
   if (err) {
     return console.error('File not found: ' + err.path);
   }
 
-  var ast;
+  var entries;
   if (program.ast) {
-    ast = JSON.parse(data.toString());
+    entries = JSON.parse(data.toString());
   } else {
     try {
-      ast = lib.parse(type, data.toString());
+      entries = lib.parse(fileformat, 'entries', data.toString());
     } catch (e) {
       console.error(makeError(e));
       process.exit(1);
     }
   }
 
-  var entries = createEntries({code: program.plural}, ast);
   var ctx = new MockContext(entries);
 
   for (var id in entries) {
@@ -89,8 +82,8 @@ function print(type, err, data) {
 }
 
 if (program.args.length) {
-  var type = program.args[0].substr(program.args[0].lastIndexOf('.') + 1);
-  fs.readFile(program.args[0], print.bind(null, type));
+  var fileformat = program.args[0].substr(program.args[0].lastIndexOf('.') + 1);
+  fs.readFile(program.args[0], print.bind(null, fileformat));
 } else {
   process.stdin.resume();
   process.stdin.on('data', print.bind(null, null, null));

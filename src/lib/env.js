@@ -1,16 +1,14 @@
 'use strict';
 
 import { Context } from './context';
-import { createEntry } from './resolver';
 import PropertiesParser from './format/properties/parser';
-import L20nParser from './format/l20n/parser';
-import { walkContent, qps } from './pseudo';
+import L20nParser from './format/l20n/entries/parser';
+import { walkEntry, qps } from './pseudo';
 import { emit, addEventListener, removeEventListener } from './events';
 
 const parsers = {
-  properties: PropertiesParser.parse.bind(PropertiesParser),
-  l20n: L20nParser.parse.bind(L20nParser),
-  json: null
+  properties: PropertiesParser,
+  l20n: L20nParser,
 };
 
 export class Env {
@@ -20,7 +18,7 @@ export class Env {
 
     this._resCache = Object.create(null);
 
-    let listeners = {};
+    const listeners = {};
     this.emit = emit.bind(this, listeners);
     this.addEventListener = addEventListener.bind(this, listeners);
     this.removeEventListener = removeEventListener.bind(this, listeners);
@@ -30,28 +28,50 @@ export class Env {
     return new Context(this, resIds);
   }
 
+  _parse(syntax, lang, data) {
+    const parser = parsers[syntax];
+    if (!parser) {
+      return data;
+    }
+
+    const emit = (type, err) => this.emit(type, amendError(lang, err));
+    return parser.parse.call(parser, emit, data);
+  }
+
+  _create(lang, entries) {
+    if (lang.src !== 'qps') {
+      return entries;
+    }
+
+    const pseudoentries = Object.create(null);
+    for (let key in entries) {
+      pseudoentries[key] = walkEntry(entries[key], qps[lang.code].translate);
+    }
+    return pseudoentries;
+  }
+
   _getResource(lang, res) {
-    let cache = this._resCache;
-    let id = res + lang.code + lang.src;
+    const cache = this._resCache;
+    const id = res + lang.code + lang.src;
 
     if (cache[id]) {
       return cache[id];
     }
 
-    let syntax = res.substr(res.lastIndexOf('.') + 1);
-    let parser = parsers[syntax];
+    const syntax = res.substr(res.lastIndexOf('.') + 1);
 
-    let saveEntries = data => {
-      let ast = parser ? parser(this, data) : data;
-      cache[id] = createEntries(lang, ast);
+    const saveEntries = data => {
+      const entries = this._parse(syntax, lang, data);
+      cache[id] = this._create(lang, entries);
     };
 
-    let recover = err => {
+    const recover = err => {
+      err.lang = lang;
       this.emit('fetcherror', err);
       cache[id] = err;
     };
 
-    let langToFetch = lang.src === 'qps' ?
+    const langToFetch = lang.src === 'qps' ?
       { code: this.defaultLang, src: 'app' } :
       lang;
 
@@ -60,19 +80,7 @@ export class Env {
   }
 }
 
-function createEntries(lang, ast) {
-  let entries = Object.create(null);
-  let create = lang.src === 'qps' ?
-    createPseudoEntry : createEntry;
-
-  for (var i = 0, node; node = ast[i]; i++) {
-    entries[node.$i] = create(node, lang);
-  }
-
-  return entries;
-}
-
-function createPseudoEntry(node, lang) {
-  return createEntry(
-    walkContent(node, qps[lang.code].translate), lang);
+export function amendError(lang, err) {
+  err.lang = lang;
+  return err;
 }
