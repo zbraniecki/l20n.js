@@ -1,4 +1,4 @@
-load('../../build/dist/jsshell/l20n.js');
+load('../../dist/jsshell/l20n.js');
 
 var propCode = read('./example.properties');
 var l20nCode = read('./example.l20n');
@@ -52,23 +52,26 @@ for (var id in entries) {
    L20n.format(ctx, lang, data, entries[id]);
 }
 times.formatEnd = dateNow();
-/*
-var ctx = new L20n.Context(null);
-var locale = ctx.getLocale('en-US');
-locale.addAST(ast);
-ctx.requestLocales(['en-US']);
 
-times.getEntity = dateNow();
-for (var id in ids) {
-  ctx.getEntity(ids[id], data);
+var env = new L20n.Env('en-US');
+var ctx = env.createContext(['example.l20n']);
+env._resCache['example.l20nen-USapp'] = entries;
+
+var keys = [];
+
+for (var id in entries) {
+  keys.push([id, data]);
 }
-times.getEntityEnd = dateNow();
-*/
+
+times.ctxResolveValues = dateNow();
+ctx.resolveValues([lang], keys);
+times.ctxResolveValuesEnd = dateNow();
+
 var results = {
   parseProp: micro(times.parseEnd - times.start),
   parseL20n: micro(times.l20nParseEnd - times.l20nParseStart),
   format: micro(times.formatEnd - times.format),
-  //getEntity: micro(times.getEntityEnd - times.getEntity),
+  resolveValues: micro(times.ctxResolveValuesEnd - times.ctxResolveValues),
 };
 
 print(JSON.stringify(results));
