@@ -2,19 +2,18 @@
 
 import { documentReady } from './shims';
 import {
-  setAttributes, getAttributes, translateFragment, translateMutations,
+  setAttributes, getAttributes, translateFragment, translateChanges,
   getResourceLinks
 } from './dom';
-
-const observerConfig = {
-  attributes: true,
-  characterData: false,
-  childList: true,
-  subtree: true,
-  attributeFilter: ['data-l10n-id', 'data-l10n-args']
-};
+import { NodeWatcher } from './nodewatcher';
 
 const readiness = new WeakMap();
+
+const observerConfig = {
+  query: '[data-l10n-id]',
+  args: ['data-l10n-id', 'data-l10n-args'],
+  types: ['added', 'modified']
+};
 
 export class View {
   constructor(client, doc) {
@@ -27,9 +26,9 @@ export class View {
     this._interactive = documentReady().then(
       () => init(this, client));
 
-    const observer = new MutationObserver(onMutations.bind(this));
-    this._observe = () => observer.observe(doc, observerConfig);
-    this._disconnect = () => observer.disconnect();
+    this._observer = new NodeWatcher(onNodeChanges.bind(this), observerConfig);
+    this._observe = () => this._observer.observe(doc);
+    this._disconnect = () => this._observer.disconnect();
 
     const translateView = langs => translateDocument(this, langs);
     client.on('translateDocument', translateView);
@@ -87,16 +86,19 @@ function init(view, client) {
       () => client);
 }
 
-function onMutations(mutations) {
+function onNodeChanges(...args) {
   return this.resolvedLanguages().then(
-    langs => translateMutations(this, langs, mutations));
+    langs => translateChanges(this, langs, ...args));
 }
 
 export function translateDocument(view, langs) {
   const html = view._doc.documentElement;
 
   if (readiness.has(html)) {
-    return translateFragment(view, langs, html).then(
+    const affectedElements =
+      view.observer.scanRootForChanges(view._doc.documentElement);
+
+    return translateChanges(view, langs, affectedElements).then(
       () => setDOMAttrsAndEmit(html, langs)).then(
         () => langs.map(takeCode));
   }
@@ -104,8 +106,9 @@ export function translateDocument(view, langs) {
   const translated =
     // has the document been already pre-translated?
     langs[0].code === html.getAttribute('lang') ?
-      Promise.resolve() :
-      translateFragment(view, langs, html).then(
+      Promise.resolve() : 
+      translateChanges(view, langs,
+        view._observer.scanRootForChanges(view._doc.documentElement)).then(
         () => setDOMAttrs(html, langs));
 
   return translated.then(
