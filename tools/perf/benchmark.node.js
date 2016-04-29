@@ -1,6 +1,8 @@
 require('string.prototype.startswith');
 require('string.prototype.endswith');
 
+var MessageFormat = require('./messageformat');
+
 var fs = require('fs');
 
 require('babel-register')({
@@ -11,6 +13,7 @@ var L20n = require('../../src/runtime/node');
 var Context = require('../../src/lib/context').Context;
 
 var ftlCode = fs.readFileSync(__dirname + '/example.ftl').toString();
+var mfCode = fs.readFileSync(__dirname + '/example.mf.json').toString();
 
 var data = {
   "brandShortName": "BRANDSHORTNAME",
@@ -45,6 +48,21 @@ function micro(time) {
 var cumulative = {};
 var start = process.hrtime();
 
+var mfRes = [];
+cumulative.mfParseStart = process.hrtime(start);
+var mf = new MessageFormat('en');
+var mfEntries = JSON.parse(mfCode);
+for (var id in mfEntries) {
+  mfRes.push(mf.compile(mfEntries[id]));
+}
+cumulative.mfParseEnd = process.hrtime(start);
+cumulative.mfCompileStart = process.hrtime(start);
+var mfStr = mfRes.map(res => {
+  return res(data);
+});
+cumulative.mfCompileEnd = process.hrtime(start);
+
+
 cumulative.ftlParseStart = process.hrtime(start);
 var [resource] = L20n.FTLASTParser.parseResource(ftlCode);
 cumulative.ftlParseEnd = process.hrtime(start);
@@ -62,6 +80,8 @@ for (var id in entries) {
 cumulative.formatEnd = process.hrtime(start);
 
 var results = {
+  parseMF: micro(cumulative.mfParseEnd) - micro(cumulative.mfParseStart),
+  compileMF: micro(cumulative.mfCompileEnd) - micro(cumulative.mfCompileStart),
   parseFTL: micro(cumulative.ftlParseEnd) - micro(cumulative.ftlParseStart),
   parseFTLEntries: micro(cumulative.ftlEntriesParseEnd) - micro(cumulative.ftlEntriesParseStart),
   format: micro(cumulative.formatEnd) - micro(cumulative.format),
