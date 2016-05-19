@@ -90,11 +90,7 @@ function translateElements(view, elements) {
 function applyTranslations(view, elems, translations) {
   disconnect(view, null, true);
   for (let i = 0; i < elems.length; i++) {
-    try {
-      overlayElement(elems[i], translations[i]);
-    } catch (e) {
-      console.log(e);
-    }
+    overlayElement(elems[i], translations[i]);
   }
   reconnect(view);
 }

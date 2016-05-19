@@ -10,10 +10,6 @@ endef
 export BANNER
 
 build:
-	rollup L20nParser.jsm \
-	    -f cjs \
-      --banner "$$BANNER" \
-	    -o $(DIST)/L20nParser.jsm
 	rollup L20n.jsm \
 	    -f cjs \
       --banner "$$BANNER" \
