@@ -1,6 +1,9 @@
-import FTLRuntimeParser from '../ftl/entries/parser';
 import { format } from './resolver';
 import { FTLNone } from './types';
+
+Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "L20nParser",
+                                 "resource://gre/modules/L20nParser.jsm");
 
 export class MessageContext {
   constructor(lang, { functions } = {}) {
@@ -11,7 +14,7 @@ export class MessageContext {
   }
 
   addMessages(source) {
-    const [entries, errors] = FTLRuntimeParser.parseResource(source);
+    const [entries, errors] = L20nParser.parseResource(source);
     for (let id in entries) {
       this.messages.set(id, entries[id]);
     }

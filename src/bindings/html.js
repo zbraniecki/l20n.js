@@ -8,6 +8,9 @@ import { initMutationObserver, translateRoots, observe, disconnect }
 import { setAttributes, getAttributes, translateFragment }
   from './dom';
 
+Components.utils.import("resource://gre/modules/Services.jsm");
+Components.utils.import("resource://gre/modules/IntlMessageContext.jsm");
+
 const properties = new WeakMap();
 const contexts = new WeakMap();
 
@@ -17,6 +20,12 @@ export class Localization {
     this.ready = this.interactive
       .then(bundles => fetchFirstBundle(bundles))
       .then(bundles => translateDocument(this, bundles));
+
+    this.interactive.then(bundles => {
+      this.getValue = function(id, args) {
+        return keysFromContext(contexts.get(bundles[0]), [[id, args]], valueFromContext)[0];
+      };
+    });
 
     properties.set(this, { doc, requestBundles, ready: false });
     initMutationObserver(this);
@@ -72,9 +81,28 @@ export class Localization {
 Localization.prototype.setAttributes = setAttributes;
 Localization.prototype.getAttributes = getAttributes;
 
+const functions = {
+  OS: function() {
+    switch (Services.appinfo.OS) {
+      case 'WINNT':
+        return 'win';
+      case 'Linux':
+        return 'lin';
+      case 'Darwin':
+        return 'mac';
+      case 'Android':
+        return 'android';
+      default:
+        return 'other';
+    }
+  }
+};
+
 function createContextFromBundle(bundle) {
   return bundle.fetch().then(resources => {
-    const ctx = new Intl.MessageContext(bundle.lang);
+    const ctx = new MessageContext(bundle.lang, {
+      functions
+    });
     resources.forEach(res => ctx.addMessages(res));
     contexts.set(bundle, ctx);
     return ctx;

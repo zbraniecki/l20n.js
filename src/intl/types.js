@@ -1,3 +1,15 @@
+const {classes: Cc, interfaces: Ci, utils: Cu} = Components;
+
+Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+
+XPCOMUtils.defineLazyModuleGetter(this, "ListFormat",
+  "resource://gre/modules/IntlListFormat.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "PluralRules",
+  "resource://gre/modules/IntlPluralRules.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "RelativeTimeFormat",
+  "resource://gre/modules/IntlRelativeTimeFormat.jsm");
+
+
 export class FTLBase {
   constructor(value, opts) {
     this.value = value;
@@ -53,7 +65,7 @@ export class FTLKeyword extends FTLBase {
       return name === other;
     } else if (other instanceof FTLNumber) {
       const pr = ctx._memoizeIntlObject(
-        Intl.PluralRules, other.opts
+        PluralRules, other.opts
       );
       return name === pr.select(other.valueOf());
     } else {
@@ -65,7 +77,7 @@ export class FTLKeyword extends FTLBase {
 export class FTLList extends Array {
   toString(ctx) {
     const lf = ctx._memoizeIntlObject(
-      Intl.ListFormat // XXX add this.opts
+      ListFormat // XXX add this.opts
     );
     const elems = this.map(
       elem => elem.toString(ctx)
