@@ -10,7 +10,6 @@ const allowed = {
   ],
   attributes: {
     global: ['title', 'aria-label', 'aria-valuetext', 'aria-moz-hint'],
-    button: ['accesskey'],
     a: ['download'],
     area: ['download', 'alt'],
     button: ['accesskey'], // used by XUL

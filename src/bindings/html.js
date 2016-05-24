@@ -20,13 +20,6 @@ export class Localization {
       .then(bundles => fetchFirstBundle(bundles))
       .then(bundles => translateDocument(this, bundles));
 
-    this.interactive.then(bundles => {
-      this.getValue = function(id, args) {
-        return keysFromContext(
-          contexts.get(bundles[0]), [[id, args]], valueFromContext)[0];
-      };
-    });
-
     properties.set(this, { doc, requestBundles, ready: false });
     initMutationObserver(this);
     this.observeRoot(doc.documentElement);
