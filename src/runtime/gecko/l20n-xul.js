@@ -1,10 +1,10 @@
 import { prioritizeLocales } from '../../intl/locale';
 import { contexts, Localization } from '../../bindings/html';
-import { documentReady, getXULResourceLinks, getXULMeta } from './util';
+import { documentReady, getXULResourceLinks } from './util';
 import { keysFromContext, valueFromContext } from '../../lib/format';
+import { ResourceBundle } from './resourcebundle';
 
 Components.utils.import('resource://gre/modules/Services.jsm');
-Components.utils.import('resource://gre/modules/L20n.jsm');
 Components.utils.import('resource://gre/modules/IntlMessageContext.jsm');
 
 const functions = {
@@ -26,11 +26,12 @@ const functions = {
 
 function requestBundles(requestedLangs = navigator.languages) {
   return documentReady().then(() => {
-    const { defaultLang, availableLangs } = getXULMeta(document);
+    const defaultLang = 'en-US';
+    const availableLangs = ['en-US'];
     const resIds = getXULResourceLinks(document);
 
     const newLangs = prioritizeLocales(
-      defaultLang, Object.keys(availableLangs), requestedLangs
+      defaultLang, availableLangs, requestedLangs
     );
 
     return newLangs.map(
