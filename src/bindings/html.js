@@ -9,7 +9,7 @@ import { setAttributes, getAttributes, translateFragment }
   from './dom';
 
 const properties = new WeakMap();
-const contexts = new WeakMap();
+export const contexts = new WeakMap();
 
 export class Localization {
   constructor(doc, requestBundles, createContext) {

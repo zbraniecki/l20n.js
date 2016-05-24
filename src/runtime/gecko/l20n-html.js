@@ -1,5 +1,5 @@
 import { prioritizeLocales } from '../../intl/locale';
-import { Localization } from '../../bindings/html';
+import { contexts, Localization } from '../../bindings/html';
 import { documentReady, getResourceLinks, getMeta } from './util';
 import { keysFromContext, valueFromContext } from '../../lib/format';
 
