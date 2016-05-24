@@ -2,7 +2,8 @@ import { prioritizeLocales } from '../../intl/locale';
 import { Localization } from '../../bindings/html';
 import { documentReady, getResourceLinks, getMeta } from './util';
 
-Components.utils.import("resource://gre/modules/L20n.jsm");
+Components.utils.import('resource://gre/modules/L20n.jsm');
+Components.utils.import('resource://gre/modules/IntlMessageContext.jsm');
 
 function requestBundles(requestedLangs = navigator.languages) {
   return documentReady().then(() => {
@@ -18,6 +19,9 @@ function requestBundles(requestedLangs = navigator.languages) {
     );
   });
 }
+
+Intl.MessageContext = MessageContext;
+
 
 document.l10n = new Localization(document, requestBundles);
 window.addEventListener('languagechange', document.l10n);
