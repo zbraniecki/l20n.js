@@ -14,6 +14,7 @@ export const contexts = new WeakMap();
 export class Localization {
   constructor(doc, requestBundles, createContext) {
     this.interactive = requestBundles();
+    this.createContext = createContext;
     this.ready = this.interactive
       .then(bundles => fetchFirstBundle(bundles, createContext))
       .then(bundles => translateDocument(this, bundles));
@@ -93,7 +94,7 @@ function changeLanguages(l10n, oldBundles, requestedLangs) {
 
   l10n.interactive = requestBundles(requestedLangs).then(
     newBundles => equal(oldBundles, newBundles) ?
-      oldBundles : fetchFirstBundle(newBundles)
+      oldBundles : fetchFirstBundle(newBundles, l10n.createContext)
   );
 
   return l10n.interactive.then(

@@ -6,10 +6,6 @@ import { keysFromContext, valueFromContext } from '../../lib/format';
 Components.utils.import('resource://gre/modules/Services.jsm');
 Components.utils.import('resource://gre/modules/L20n.jsm');
 Components.utils.import('resource://gre/modules/IntlMessageContext.jsm');
-Components.utils.import('resource://gre/modules/IntlListFormat.jsm');
-Components.utils.import('resource://gre/modules/IntlPluralRules.jsm');
-Components.utils.import('resource://gre/modules/IntlRelativeTimeFormat.jsm');
-
 
 const functions = {
   OS: function() {
@@ -46,11 +42,6 @@ function requestBundles(requestedLangs = navigator.languages) {
 function createContext(lang) {
   return new MessageContext(lang, { functions });
 }
-
-Intl.MessageContext = MessageContext;
-Intl.PluralRules = PluralRules;
-Intl.ListFormat = ListFormat;
-Intl.RelativeTimeFormat = RelativeTimeFormat;
 
 document.l10n = new Localization(document, requestBundles, createContext);
 
