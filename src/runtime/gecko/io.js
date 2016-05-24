@@ -1,3 +1,5 @@
+import { L10nError } from '../../lib/errors';
+
 const HTTP_STATUS_CODE_OK = 200;
 
 function load(url) {
@@ -12,13 +14,18 @@ function load(url) {
     req.addEventListener('load', () => {
       if (req.status === HTTP_STATUS_CODE_OK) {
         resolve(req.responseText);
+      } else {
+        reject(new L10nError('Not found: ' + url));
       }
     });
+    xhr.addEventListener('error', reject);
+    xhr.addEventListener('timeout', reject);
+
     req.send(null);
   });
 }
 
-export function fetchResource(res, code) {
-  const url = res.replace('{locale}', code);
-  return load(url);
+export function fetchResource(res, lang) {
+  const url = res.replace('{locale}', lang);
+  return load(url).catch(e => e);
 }
