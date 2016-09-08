@@ -111,9 +111,11 @@ class ParseContext {
         ch === '*') {
 
       const members = this.getMembers();
+      if (val === undefined && members[1]) {
+        val = members[0]['__default'][members[1]].val;
+      }
       entries[id] = {
         traits: members[0],
-        defaultIndex: members[1]
       };
       if (val) {
         entries[id].val = val;
@@ -197,8 +199,8 @@ class ParseContext {
     name += this._source.slice(start, this._index).trimRight();
 
     return namespace ?
-      { type: 'kw', ns: namespace, name } :
-      { type: 'kw', name };
+      [namespace, name] :
+      name;
   }
 
   getPattern() {
@@ -382,9 +384,9 @@ class ParseContext {
 
       this.getWS();
 
-      members = this.getMembers();
+      members = this.getMembers()[0];
 
-      if (members[0].length === 0) {
+      if (members.length === 0) {
         throw this.error('Expected members for the select expression');
       }
     }
@@ -395,8 +397,7 @@ class ParseContext {
     return {
       type: 'sel',
       exp: selector,
-      vars: members[0],
-      index: members[1]
+      vars: members
     };
   }
 
@@ -532,12 +533,12 @@ class ParseContext {
   }
 
   getMembers() {
-    const members = [];
-    let index = 0;
-    let defaultIndex;
+    const members = {};
+    let defaultKey;
 
     while (this._index < this._length) {
       const ch = this._source[this._index];
+      let defKey = false;
 
       if ((ch !== '[' || this._source[this._index + 1] === '[') &&
           ch !== '*') {
@@ -545,7 +546,7 @@ class ParseContext {
       }
       if (ch === '*') {
         this._index++;
-        defaultIndex = index;
+        defKey = true;
       }
 
       if (this._source[this._index] !== '[') {
@@ -556,16 +557,22 @@ class ParseContext {
 
       this.getLineWS();
 
-      const member = {
-        key,
-        val: this.getPattern()
-      };
-      members[index++] = member;
+      let ns = Array.isArray(key) ? key[0] : '__default';
+      let name = Array.isArray(key) ? key[1] : key;
+
+      if (!members.hasOwnProperty(ns)) {
+        members[ns] = {};
+      }
+      members[ns][name] = this.getPattern();
+
+      if (defKey) {
+        defaultKey = name;
+      }
 
       this.getWS();
     }
 
-    return [members, defaultIndex];
+    return [members, defaultKey];
   }
 
   getMemberKey() {
