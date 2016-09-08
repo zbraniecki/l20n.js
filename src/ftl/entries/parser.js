@@ -111,8 +111,8 @@ class ParseContext {
         ch === '*') {
 
       const members = this.getMembers();
-      if (val === undefined && members[1]) {
-        val = null;
+      if (val === undefined && members[1] !== -1) {
+        val = members[0][members[1]];;
       }
       entries[id] = {
         val,
@@ -323,9 +323,8 @@ class ParseContext {
       return buffer.length ? buffer : undefined;
     }
 
-    if (content.length === 1 &&
-        typeof content[0] === 'string') {
-      return content[0];
+    if (buffer.length) {
+      content.push(buffer);
     }
 
     return content;
@@ -533,7 +532,8 @@ class ParseContext {
 
   getMembers() {
     const members = [];
-    let hasDef = false;
+    let index = 0;
+    let defaultIndex = -1;
 
     while (this._index < this._length) {
       const ch = this._source[this._index];
@@ -542,10 +542,9 @@ class ParseContext {
           ch !== '*') {
         break;
       }
-      let def = ch === '*';
-      if (def) {
-        hasDef = true;
+      if (ch === '*') {
         this._index++;
+        defaultIndex = index;
       }
 
       if (this._source[this._index] !== '[') {
@@ -560,15 +559,12 @@ class ParseContext {
         key,
         val: this.getPattern()
       };
-      if (def) {
-        member.def = true;
-      }
-      members.push(member);
+      members[index++] = member;
 
       this.getWS();
     }
 
-    return [members, hasDef];
+    return [members, defaultIndex];
   }
 
   getMemberKey() {
