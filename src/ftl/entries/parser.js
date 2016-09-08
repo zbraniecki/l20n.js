@@ -113,11 +113,9 @@ class ParseContext {
       const members = this.getMembers();
       entries[id] = {
         traits: members[0],
-        defaultIndex: members[1]
+        def: members[1],
+        val
       };
-      if (val) {
-        entries[id].val = val;
-      }
     } else if (val === undefined) {
       throw this.error(
         'Expected a value (like: " = value") or a trait (like: "[key] value")'
@@ -345,11 +343,11 @@ class ParseContext {
       } catch (e) {
         throw this.error(e.description, start);
       }
-      this.getWS();
-      if (this._source[this._index] === '}') {
+      const ch = this._source[this._index];
+      if (ch === '}') {
         this._index++;
         break;
-      } else if (this._source[this._index] === ',') {
+      } else if (ch === ',') {
         this._index++;
         this.getWS();
       } else {
@@ -362,7 +360,7 @@ class ParseContext {
 
   getPlaceableExpression() {
     const selector = this.getCallExpression();
-    let members = null;
+    let members;
 
     this.getWS();
 
@@ -389,7 +387,7 @@ class ParseContext {
       }
     }
 
-    if (members === null) {
+    if (members === undefined) {
       return selector;
     }
     return {
