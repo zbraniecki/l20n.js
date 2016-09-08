@@ -112,7 +112,7 @@ class ParseContext {
 
       const members = this.getMembers();
       if (val === undefined && members[1] !== -1) {
-        val = members[0][members[1]];;
+        val = members[0][members[1]].val;
       }
       entries[id] = {
         val,
