@@ -5,16 +5,13 @@ import { L10nError } from '../../lib/errors';
 const MAX_PLACEABLES = 100;
 
 
-class ParseContext {
-  constructor(string) {
+class Parser {
+  getResource(string) {
     this._source = string;
     this._index = 0;
     this._length = string.length;
-
     this._lastGoodEntryEnd = 0;
-  }
 
-  getResource() {
     const entries = {};
     const errors = [];
 
@@ -93,7 +90,8 @@ class ParseContext {
     if (ch !== '=') {
       throw this.error('Expected "=" after Entity ID');
     }
-    ch = this._source[++this._index];
+
+    this._index++;
 
     this.getLineWS();
 
@@ -727,7 +725,7 @@ class ParseContext {
 
 export default {
   parseResource: function(string) {
-    const parseContext = new ParseContext(string);
-    return parseContext.getResource();
+    const parser = new Parser();
+    return parser.getResource(string);
   },
 };

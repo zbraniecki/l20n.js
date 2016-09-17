@@ -5,43 +5,65 @@ import { L10nError } from '../../lib/errors';
 
 const MAX_PLACEABLES = 100;
 
+function isIdentifierStart(cc) {
+  return ((cc >= 97 && cc <= 122) || // a-z
+          (cc >= 65 && cc <= 90) ||  // A-Z
+           cc === 95);               // _
+}
 
-class ParseContext {
-  constructor(string) {
+/**
+ * The `Parser` class is responsible for parsing FTL resources.
+ *
+ * It's only public method is `getResource(source)` which takes an FTL
+ * string and returns a two element Array with FTL AST
+ * generated from the source as the first element and an array of L10nError
+ * objects as the second.
+ *
+ * This parser is aiming for generating full AST which is useful for FTL tools.
+ *
+ * There is an equivalent of this parser in ftl/entries/parser which is meant
+ * for runtime performance and generates an optimized entries object.
+ */
+class Parser {
+  /**
+   * @param {string} string
+   * @returns {[AST.Resource, []]}
+   */
+  getResource(string) {
     this._source = string;
     this._index = 0;
     this._length = string.length;
 
+    // This variable is used for error recovery and reporting.
     this._lastGoodEntryEnd = 0;
-  }
 
-  _isIdentifierStart(cc) {
-    return ((cc >= 97 && cc <= 122) || // a-z
-            (cc >= 65 && cc <= 90) ||  // A-Z
-             cc === 95);               // _
-  }
-
-  getResource() {
     const resource = new AST.Resource();
     const errors = [];
     let comment = null;
 
+    // Indicates which section entries should be added to.
+    // At the moment it may be either Resource.body, or Section.body
     let section = resource.body;
 
+    // If the file starts with a comment not followed immediatelly by
+    // an entry, the comment is going to be assigned to the Resource
     if (this._source[this._index] === '#') {
       comment = this.getComment();
 
       const cc = this._source.charCodeAt(this._index);
-      if (!this._isIdentifierStart(cc)) {
+      if (!isIdentifierStart(cc)) {
         resource.comment = comment;
         comment = null;
       }
     }
 
     this.getWS();
+
     while (this._index < this._length) {
       try {
         const entry = this.getEntry(comment);
+
+        // If retrieved entry is a Section, switch the section pointer to it.
         if (entry.type === 'Section') {
           resource.body.push(entry);
           section = entry.body;
@@ -49,7 +71,14 @@ class ParseContext {
           section.push(entry);
         }
         this._lastGoodEntryEnd = this._index;
-        comment = null;
+
+        // If there was a comment at the beginning of the file, and it was
+        // immediatelly followed by an Entity, we passed the comment to getEntry
+        // and now we want to mark it as null to prevent it from being
+        // fed to the next entry.
+        if (comment !== null) {
+          comment = null;
+        }
       } catch (e) {
         if (e instanceof L10nError) {
           errors.push(e);
@@ -65,6 +94,8 @@ class ParseContext {
   }
 
   getEntry(comment = null) {
+    // The pointer here should either be at the beginning of the file
+    // or right after new line.
     if (this._index !== 0 &&
         this._source[this._index - 1] !== '\n') {
       throw this.error('Expected new line and a new entry');
@@ -74,14 +105,11 @@ class ParseContext {
       comment = this.getComment();
     }
 
-    this.getLineWS();
-
     if (this._source[this._index] === '[') {
       return this.getSection(comment);
     }
 
-    if (this._index < this._length &&
-        this._source[this._index] !== '\n') {
+    if (this._source[this._index] !== '\n') {
       return this.getEntity(comment);
     }
     return comment;
@@ -124,7 +152,8 @@ class ParseContext {
     if (ch !== '=') {
       throw this.error('Expected "=" after Entity ID');
     }
-    ch = this._source[++this._index];
+
+    this._index++;
 
     this.getLineWS();
 
@@ -132,6 +161,8 @@ class ParseContext {
 
     ch = this._source[this._index];
 
+    // In the scenario when the pattern is quote-delimited
+    // the pattern ends with the closing quote.
     if (ch === '\n') {
       this._index++;
       this.getLineWS();
@@ -167,14 +198,12 @@ class ParseContext {
   }
 
   getIdentifier() {
-    let name = '';
-
     const start = this._index;
     let cc = this._source.charCodeAt(this._index);
 
-    if (this._isIdentifierStart(cc)) {
+    if (isIdentifierStart(cc)) {
       cc = this._source.charCodeAt(++this._index);
-    } else if (name.length === 0) {
+    } else {
       throw this.error('Expected an identifier (starting with [a-zA-Z_])');
     }
 
@@ -185,7 +214,7 @@ class ParseContext {
       cc = this._source.charCodeAt(++this._index);
     }
 
-    name += this._source.slice(start, this._index);
+    const name = this._source.slice(start, this._index);
 
     return new AST.Identifier(name);
   }
@@ -194,6 +223,23 @@ class ParseContext {
     let name = '';
     let namespace = this.getIdentifier().name;
 
+    // If the first character after identifier string is '/', it means
+    // that what we collected so far is actually a namespace.
+    //
+    // But if it is not '/', that means that what we collected so far
+    // is just the beginning of the keyword and we should continue collecting
+    // it.
+    // In that scenario, we're going to move charcters collected so far
+    // from namespace variable to name variable and set namespace to null.
+    //
+    // For example, if the keyword is "Foo bar", at this point we only
+    // collected "Foo", the index character is not "/", so we're going
+    // to move on and see if the next character is allowed in the name.
+    //
+    // Because it's a space, it is and we'll continue collecting the name.
+    //
+    // In case the keyword is "Foo/bar", we're going to keep what we collected
+    // so far as `namespace`, bump the index and start collecting the name. 
     if (this._source[this._index] === '/') {
       this._index++;
     } else if (namespace) {
@@ -204,7 +250,7 @@ class ParseContext {
     const start = this._index;
     let cc = this._source.charCodeAt(this._index);
 
-    if (this._isIdentifierStart(cc)) {
+    if (isIdentifierStart(cc)) {
       cc = this._source.charCodeAt(++this._index);
     } else if (name.length === 0) {
       throw this.error('Expected an identifier (starting with [a-zA-Z_])');
@@ -217,6 +263,10 @@ class ParseContext {
       cc = this._source.charCodeAt(++this._index);
     }
 
+    // If we encountered the end of name, we want to test is the last
+    // collected character is a space.
+    // If it is, we will backtrack to the last non-space character because
+    // the keyword cannot end with a space character.
     while (this._source.charCodeAt(this._index - 1) === 32) {
       this._index--;
     }
@@ -676,7 +726,7 @@ class ParseContext {
       }
       const cc = this._source.charCodeAt(start + 1);
 
-      if (this._isIdentifierStart(cc)) {
+      if (isIdentifierStart(cc)) {
         start++;
         break;
       }
@@ -693,7 +743,7 @@ class ParseContext {
           this._source[start - 1] === '\n') {
         const cc = this._source.charCodeAt(start);
 
-        if (this._isIdentifierStart(cc) || cc === 35 || cc === 91) {
+        if (isIdentifierStart(cc) || cc === 35 || cc === 91) {
           break;
         }
       }
@@ -712,7 +762,7 @@ class ParseContext {
 
 export default {
   parseResource: function(string) {
-    const parseContext = new ParseContext(string);
-    return parseContext.getResource();
+    const parser = new Parser();
+    return parser.getResource(string);
   },
 };
