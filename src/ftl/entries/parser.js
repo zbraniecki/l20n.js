@@ -455,7 +455,7 @@ class Parser {
 
           if (val.type === 'ref' ||
               val.type === 'member') {
-            this._index = this._source.lastIndexOf('=', this._index) + 1;
+            this._index = this._source.lastIndexOf(':', this._index) + 1;
             throw this.error('Expected string in quotes');
           }
 

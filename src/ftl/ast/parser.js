@@ -282,12 +282,17 @@ class Parser {
     let source = '';
     let placeables = 0;
     const content = [];
+    // We actually use all three possible states of this variable:
+    // true and false indicate if we're within a quote-delimited string
+    // null indicates that the string is not quote-delimited
     let quoteDelimited = null;
     let firstLine = true;
 
     let ch = this._source[this._index];
 
 
+    // If the string starts with \", \{ or \\ skip the first `\` and add the
+    // following character to the buffer without interpreting it.
     if (ch === '\\' &&
       (this._source[this._index + 1] === '"' ||
        this._source[this._index + 1] === '{' ||
@@ -296,12 +301,16 @@ class Parser {
       this._index += 2;
       ch = this._source[this._index];
     } else if (ch === '"') {
+      // If the first character of the string is `"`, mark the string
+      // as quote delimited.
       quoteDelimited = true;
       this._index++;
       ch = this._source[this._index];
     }
 
     while (this._index < this._length) {
+      // This block handles multi-line strings combining strings seaprated
+      // by new line and `|` character at the beginning of the next one.
       if (ch === '\n') {
         if (quoteDelimited) {
           throw this.error('Unclosed string');
@@ -326,6 +335,8 @@ class Parser {
         continue;
       } else if (ch === '\\') {
         const ch2 = this._source[this._index + 1];
+        // We only handle `{` as a character that can be escaped in a string
+        // and `"` if the string is quote delimited.
         if ((quoteDelimited && ch2 === '"') ||
             ch2 === '{') {
           ch = ch2;
@@ -336,6 +347,7 @@ class Parser {
         quoteDelimited = false;
         break;
       } else if (ch === '{') {
+        // Push the buffer to content array right before placeable
         if (buffer.length) {
           content.push(new AST.TextElement(buffer));
         }
@@ -418,6 +430,8 @@ class Parser {
 
     this.getWS();
 
+    // If the expression is followed by `->` we're going to collect
+    // its members and return it as a select expression.
     if (this._source[this._index] !== '}' &&
         this._source[this._index] !== ',') {
       if (this._source[this._index] !== '-' ||
@@ -479,6 +493,8 @@ class Parser {
 
       const exp = this.getCallExpression();
 
+      // EntityReference in this place may be an entity reference, like:
+      // `call(foo)`, or, if it's followed by `:` it will be a key-value pair.
       if (!(exp instanceof AST.EntityReference)) {
         args.push(exp);
       } else {
@@ -490,13 +506,24 @@ class Parser {
 
           const val = this.getCallExpression();
 
-          if (val instanceof AST.EntityReference ||
-              val instanceof AST.MemberExpression) {
-            this._index = this._source.lastIndexOf('=', this._index) + 1;
-            throw this.error('Expected string in quotes');
+          console.log(val);
+          // If the expression returned as a value of the argument
+          // is not a quote delimited string, number or
+          // external argument, throw an error.
+          //
+          // We don't have to check here if the pattern is quote delimited
+          // because that's the only type of string allowed in expressions. 
+          if (val instanceof AST.Pattern ||
+              val instanceof AST.Number ||
+              val instanceof AST.ExternalArgument) {
+            args.push(new AST.KeyValueArg(exp.name, val));
+          } else {
+            // If we encountered an error, get back to the last kvp separator
+            // and throw an error from there.
+            this._index = this._source.lastIndexOf(':', this._index) + 1;
+            throw this.error(
+              'Expected string in quotes, number or external argument');
           }
-
-          args.push(new AST.KeyValueArg(exp.name, val));
         } else {
           args.push(exp);
         }
@@ -520,28 +547,34 @@ class Parser {
     let num = '';
     let cc = this._source.charCodeAt(this._index);
 
+    // The number literal may start with negative sign `-`.
     if (cc === 45) {
       num += '-';
       cc = this._source.charCodeAt(++this._index);
     }
 
+    // next, we expect at least one digit
     if (cc < 48 || cc > 57) {
       throw this.error(`Unknown literal "${num}"`);
     }
 
+    // followed by potentially more digits
     while (cc >= 48 && cc <= 57) {
       num += this._source[this._index++];
       cc = this._source.charCodeAt(this._index);
     }
 
+    // followed by an optional decimal separator `.`
     if (cc === 46) {
       num += this._source[this._index++];
       cc = this._source.charCodeAt(this._index);
 
+      // followed by at least one digit
       if (cc < 48 || cc > 57) {
         throw this.error(`Unknown literal "${num}"`);
       }
 
+      // and optionally more digits
       while (cc >= 48 && cc <= 57) {
         num += this._source[this._index++];
         cc = this._source.charCodeAt(this._index);
