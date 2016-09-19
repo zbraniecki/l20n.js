@@ -239,7 +239,7 @@ class Parser {
     // Because it's a space, it is and we'll continue collecting the name.
     //
     // In case the keyword is "Foo/bar", we're going to keep what we collected
-    // so far as `namespace`, bump the index and start collecting the name. 
+    // so far as `namespace`, bump the index and start collecting the name.
     if (this._source[this._index] === '/') {
       this._index++;
     } else if (namespace) {
@@ -506,13 +506,12 @@ class Parser {
 
           const val = this.getCallExpression();
 
-          console.log(val);
           // If the expression returned as a value of the argument
           // is not a quote delimited string, number or
           // external argument, throw an error.
           //
           // We don't have to check here if the pattern is quote delimited
-          // because that's the only type of string allowed in expressions. 
+          // because that's the only type of string allowed in expressions.
           if (val instanceof AST.Pattern ||
               val instanceof AST.Number ||
               val instanceof AST.ExternalArgument) {
@@ -587,7 +586,11 @@ class Parser {
   getMemberExpression() {
     let exp = this.getLiteral();
 
-    while (this._source[this._index] === '[') {
+    // the obj element of the member expression
+    // must be either an entity reference or another member expression.
+    while ((exp instanceof AST.EntityReference ||
+            exp instanceof AST.MemberExpression) &&
+            this._source[this._index] === '[') {
       const keyword = this.getMemberKey();
       exp = new AST.MemberExpression(exp, keyword);
     }
@@ -630,6 +633,7 @@ class Parser {
     return members;
   }
 
+  // MemberKey may be a Keyword or Number
   getMemberKey() {
     this._index++;
 
@@ -668,15 +672,15 @@ class Parser {
 
   getComment() {
     this._index++;
+
+    // We ignore the first white space of each line
     if (this._source[this._index] === ' ') {
       this._index++;
     }
 
-    let content = '';
-
     let eol = this._source.indexOf('\n', this._index);
 
-    content += this._source.substring(this._index, eol);
+    let content = this._source.substring(this._index, eol);
 
     while (eol !== -1 && this._source[eol + 1] === '#') {
       this._index = eol + 2;

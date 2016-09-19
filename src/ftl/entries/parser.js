@@ -524,7 +524,8 @@ class Parser {
   getMemberExpression() {
     let exp = this.getLiteral();
 
-    while (this._source[this._index] === '[') {
+    while (['ref', 'mem'].includes(exp.type) &&
+      this._source[this._index] === '[') {
       const keyword = this.getMemberKey();
       exp = {
         type: 'mem',
