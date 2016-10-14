@@ -7,10 +7,10 @@ and at the same time makes complex things possible.  Users should be able to
 benefit from the entire expressive power of their language.
 
 
-Using L20n in XUL Documents
+Using L20n in DOM
 ===========================
 
-L20n has been designed as a Web-first technology.  Using it with XUL is as 
+L20n has been designed as a Web-first technology.  Using it with DOM is as
 simple as including a ``<script>`` element and specifying the translation 
 resources with a ``<link>``.
 
@@ -38,19 +38,19 @@ Create An FTL Translation Resource
 Translations for L20n are stored in ``.ftl`` files.  You can find more 
 information about the FTL format at the end of this document.
 
-The FTL files leverage the existing packaging infrastructure for locales.  The 
-*en-US* translations for ``browser`` can be found in 
-``browser/locale/en-US/browser``, as specified by ``browser/locale/jar.mn``::
+The FTL files leverage the existing packaging infrastructure for locales.  The
+translations for ``browser`` can be found in
+``browser/locale/*/browser``, as specified by ``browser/locale/jar.mn``::
 
     browser                                        (%browser/*.ftl)
 
-You can refer to them via the path relative to the ``en-US`` directory.  This 
+You can refer to them via the path relative to the locale directory.  This
 is called the Resource Identifier.  For instance, the resource identifier for 
 ``browser/locale/en-US/browser/menubar.ftl`` is ``/browser/menubar.ftl``.
 
-In its simplest form an FTL file is just a key-value store::
+To learn more about the FTL file format, see `Syntax`_.
 
-    hello = Hello, world!
+.. _Syntax: https://github.com/l20n/l20n.js/blob/master/docs/syntax.rst
 
 
 Link Resources
@@ -80,7 +80,7 @@ Finally include the l20n.js script right below the links to resources::
       src="chrome://global/content/l20n-chrome-xul.js"></script>
 
 
-Make XUL Elements Localizable
+Make DOM Elements Localizable
 -----------------------------
 
 L20n automatically monitors the document DOM tree for changes to localizable 
@@ -118,7 +118,7 @@ DOM Overlays
 L20n allows semantic markup in translations. Localizers can use safe text-level 
 HTML elements to create translations which obey the rules of typography and 
 punctuation. Developers can also embed interactive elements inside of 
-translations and attach event handlers to them in HTML or XUL. L20n will 
+translations and attach event handlers to them in HTML. L20n will
 overlay translations on top of the source DOM tree preserving the identity of 
 elements and the event listeners.
 
@@ -178,28 +178,3 @@ The JavaScript API
 It is also possible to use L20n programmatically, for instance in order to 
 localize dynamic content.  The API is exposed on `document.l10n`.  Refer to 
 the API docs in this folder for more information.
-
-
-The FTL Syntax
-==============
-
-FTL is a file format for describing translations based on ICU’s MessageFormat.  
-It’s designed to look familiar to people who have previous experience with 
-``.properties`` and ``.ini``. If you’ve worked with ``.properties` or ``.ini`` 
-before you already know how to create simple FTL translations::
-
-    brand-name = Firefox
-    about      = About { brand-name }
-    settings   = { brand-name } Settings
-
-FTL is designed to keep simple translations simple and readable. At the same 
-time it allows for more control from localizers when it comes to defining and 
-selecting variants of translations for different plural categories, genders, 
-grammatical cases etc. These features can be introduced only in translations 
-which need them and never leak into other languages.
-
-Refer to the syntax guide in this folder for more information about FTL. An 
-interactive editor is also available at https://l20n.github.io/tinker.  If 
-you're a tool author you may be interested in the formal `EBNF grammar`_.
-
-.. _EBNF grammar: https://github.com/l20n/spec/blob/master/grammar.ebnf
