@@ -35,22 +35,26 @@ L20n will show the identifier of the message.
 Create An FTL Translation Resource
 ----------------------------------
 
-Translations for L20n are stored in ``.ftl`` files.  You can find more 
-information about the FTL format at the end of this document.
+Translations for L20n are stored in ``.ftl`` files.  To learn more about
+the FTL file format, see `Syntax`_.
 
-The FTL files leverage the existing packaging infrastructure for locales.  The
-translations for ``browser`` can be found in
-``browser/locale/*/browser``, as specified by ``browser/locale/jar.mn``::
+.. _Syntax: https://github.com/l20n/l20n.js/blob/master/docs/syntax.rst
 
-    browser                                        (%browser/*.ftl)
+Packaging FTL files in Firefox is done by adding their directory to jar.mn.
+Please only package complete directory structures, and don't try to move files
+around.
+
+The top-level directory like ``browser`` is close to where your code is.
+Inside ``browser/locales/en-US``, the first directory clarifies the target
+audience of the feature::
+
+[localization] @AB_CD@.jar:
+    browser                                        (%browser/**/*.ftl)
+
 
 You can refer to them via the path relative to the locale directory.  This
 is called the Resource Identifier.  For instance, the resource identifier for 
 ``browser/locale/en-US/browser/menubar.ftl`` is ``/browser/menubar.ftl``.
-
-To learn more about the FTL file format, see `Syntax`_.
-
-.. _Syntax: https://github.com/l20n/l20n.js/blob/master/docs/syntax.rst
 
 
 Link Resources
@@ -94,7 +98,7 @@ object.  If needed you can use the `data-l10n-bundle` to specify a different
 
     <p data-l10n-id="warning-message" data-l10n-bundle="new-tab"></p>
 
-Notice that you don't have to put the text content in the HTML anymore (you 
+Notice that you don't have to put the text content in the DOM anymore (you 
 still can if you want to).  All content lives in the localization resources.
 
 Use the `data-l10n-args` attribute to pass additional data into translations 
@@ -116,9 +120,9 @@ DOM Overlays
 ============
 
 L20n allows semantic markup in translations. Localizers can use safe text-level 
-HTML elements to create translations which obey the rules of typography and 
+DOM elements to create translations which obey the rules of typography and 
 punctuation. Developers can also embed interactive elements inside of 
-translations and attach event handlers to them in HTML. L20n will
+translations and attach event handlers to them in the DOM. L20n will
 overlay translations on top of the source DOM tree preserving the identity of 
 elements and the event listeners.
 
