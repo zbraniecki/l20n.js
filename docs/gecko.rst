@@ -41,15 +41,15 @@ the FTL file format, see `Syntax`_.
 .. _Syntax: https://github.com/l20n/l20n.js/blob/master/docs/syntax.rst
 
 Packaging FTL files in Firefox is done by adding their directory to jar.mn.
-Please only package complete directory structures, and don't try to move files
-around.
+Please only package complete directory structures, and keep the same directory
+layout as in the source.
 
 The top-level directory like ``browser`` is close to where your code is.
 Inside ``browser/locales/en-US``, the first directory clarifies the target
 audience of the feature::
 
-[localization] @AB_CD@.jar:
-    browser                                        (%browser/**/*.ftl)
+    [localization] @AB_CD@.jar:
+        browser                                        (%browser/**/*.ftl)
 
 
 You can refer to them via the path relative to the locale directory.  This
