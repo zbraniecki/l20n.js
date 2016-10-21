@@ -1,53 +1,101 @@
-================
-Builtins in L20n
-================
+=================
+Functions in L20n
+=================
+
+Functions provide additional functionality available to the localizers.
+They can be either used to format data according to the current language's
+rules or can provide additional data that the localizer may use (like, the
+platform, or time of the day) to fine tune the translation.
 
 L20n ships with a number of built-in functions that can be used from within
 localization messages.
 
-The list of built-ins is extensible and environments may want to add additional
-built-ins designated to aid localizers writing translations targeted
-for a given environment.
+The list of available functions is extensible and environments may want to
+add additional functions designated to aid localizers writing translations
+targeted for a given environment.
 
 
-How to use Built-ins
+How to use Functions
 ====================
 
-Localizers can reference builtin in a message within a placeable and either
-display the return value, or use it in the selector expression to select
-the right value.
+FTL Functions can only be called inside of placeables. Use them to return a
+value to be interpolated in the message or as selectors in select expressions.
 
-Examples::
-
-
-  today-is = Today is { DATETIME($date, weekday=long) } 
+Example::
 
 
-Default built-ins
-=================
+  today-is = Today is { DATETIME($date) }
 
-Default built-ins are very generic and should be applicable to any translation
+
+Function parameters
+===================
+
+Functions may (but don't have to) accept positional and keyword arguments.
+Some parameters are only available to developers passing the Function as
+an argument.
+See the reference below for more information about the arguments accepted for
+each built-in function.
+
+
+Built-in Functions
+==================
+
+Built-in functions are very generic and should be applicable to any translation
 environment.
 
 ``NUMBER``
     Formats a number to a string in a given locale.
-    Accepts the same parameters as `Intl.NumberFormat`_ API.
 
     Example::
 
       dpi-ratio = Your DPI ratio is { NUMBER($ratio, minimumFractionDigits=2) } 
 
+    Parameters::
+
+      ''currencyDisplay''
+      ''useGrouping''
+      ''minimumIntegerDigits''
+      ''minimumFractionDigits''
+      ''maximumFractionDigits''
+      ''minimumSignificantDigits''
+      ''maximumSignificantDigits''
+
+    Devloper parameters::
+
+      ''style''
+      ''currency''
+
+    See the `Intl.NumberFormat`_ for the description of the parameters.
+
+
 ``DATETIME``
     Formats a date to a string in a given locale.
-    Accepts the same parameters as `Intl.DateTimeFormat`_ API.
 
     Example::
 
       today-is = Today is { DATETIME($date, month=long, year=numeric, day=numeric) } 
 
+    Parameters::
+
+      ''hour12''
+      ''weekday''
+      ''era''
+      ''year''
+      ''month''
+      ''day''
+      ''hour''
+      ''minute''
+      ''second''
+      ''timeZoneName''
+
+    Devloper parameters::
+
+      ''timeZone''
+
+    See the `Intl.DateTimeFormat`_ for the description of the parameters.
+
 ``PLURAL``
     Returns a plural form that matches the number for a given locale.
-    Accepts the same parameters as `Intl.PluralRules`_ API.
 
     Example::
   
@@ -56,6 +104,19 @@ environment.
        *[other] { $num } people liked your message
       }
       
+    Parameters::
+
+      ''minimumIntegerDigits''
+      ''minimumFractionDigits''
+      ''maximumFractionDigits''
+      ''minimumSignificantDigits''
+      ''maximumSignificantDigits''
+
+    Devloper parameters::
+
+      ''type''
+
+    See the `Intl.PluralRules`_ for the description of the parameters.
 
 ``LIST``
     Formats a list to a string in a given locale.
@@ -67,6 +128,15 @@ environment.
 
       users2 = { LIST($users) }
 
+    Parameters::
+
+      ''style''
+
+    Devloper parameters::
+
+      ''type''
+
+    See the `Intl.ListFormat`_ for the description of the parameters.
 
 ``LEN``
     Returns the number that represents the length of the list argument.
@@ -96,15 +166,15 @@ environment.
 Implicit use
 ============
 
-In order to simplify most common scenarios, L20n will run a default
-built-in while resolving placeables.
+In order to simplify most common scenarios, L20n will run some default
+functions while resolving placeables.
 
-For the list of implicit built-ins, the implict example has exactly the same
+For the list of implicit functions, the implict example has exactly the same
 result as the explicit one.
 
 ``NUMBER``
     If the variable passed from the developer is a number and is used in
-    a placeable, L20n will implicitly call a `NUMBER` built-in on it.
+    a placeable, L20n will implicitly call a `NUMBER` function on it.
 
     Example::
 
@@ -114,7 +184,7 @@ result as the explicit one.
 
 ``DATETIME``
     If the variable passed from the developer is a date and is used in
-    a placeable, L20n will implicitly call a `DATE` built-in on it.
+    a placeable, L20n will implicitly call a `DATE` function on it.
 
     Example::
 
@@ -124,7 +194,7 @@ result as the explicit one.
 
 ``PLURAL``
     If the variable passed from the developer is a number and is used in
-    a selector expression, L20n will implicitly call a `PLURAL` built-in on it.
+    a selector expression, L20n will implicitly call a `PLURAL` function on it.
 
     Example::
 
@@ -140,10 +210,10 @@ result as the explicit one.
 
 ``LIST``
     If the variable passed from the developer is a number and is used in
-    a placeable, L20n will implicitly call a `LIST` built-in on it.
+    a placeable, L20n will implicitly call a `LIST` function on it.
 
     Also, if the placeable is a list of variables, L20n will implicitly
-    call a `LIST` built-in on it.
+    call a `LIST` function on it.
 
     Example::
 
@@ -156,54 +226,63 @@ result as the explicit one.
       users2 = { $users }
 
 
-Partially resolved built-ins
+Functions as arguments
 ============================
 
-In the future we'll want to allow for partially resolved builtins to be
-constructed by the developer and passed to the localization.
-This scenario will be used when the developer wants to define the
-default parameters for the built-in, but allow the localizer
-to override them if needed.
+In most cases users will not have to call out Function explicitly, thanks
+to the implicit calls.
 
-It may look like this::
+The cases where implicit doesn't work will often come when the Function
+has to be called with additional parameters, but even then, majority
+of scenarios will require the parameters to be set by the developer and only
+in rare cases localizer will have to touch them.
+
+Developers can provide the variable already wrapped in Function as an
+argument.
+
+Example::
 
   main.js:
 
-  let s = document.l10n.formatValue('key1', {
-    'date': L20n.DateTime({
-      month: 'long',
-      year: 'numeric',
-      day: 'numeric'
+  let date = new Date();
+  let s = ctx.format('key1', {
+    day: Intl.MessageDateTimeArgument(date, {
+      weekday: 'long'
     })
-  });
+  })
 
   main.ftl:
 
-  # If the localizers doesn't need to change anything
-  key1 = Current date is { $date }
+  key1 = Today is { $day }
 
-  # If the localizer needs to change the way we display month to fit the text
-  key1 = Current date is { DATETIME($date, month=short) }
+If the localizer decide that they have to modify the parameters, for example
+because the string doesn't fit in the UI, they can pass the variable
+to the same Function and overload parameters. Example::
+
+  main.ftl:
+
+  key1 = Today is { DATETIME($day, weekday: "short") }
 
 
-Gecko runtime specific built-ins
+
+Gecko runtime specific functions
 ================================
 
-At the moment Gecko supports the following OS-specific built-ins:
+At the moment Gecko runtime adds the following functions:
 
-``OS``
+``PLATFORM``
     Returns a code-name that matches the host environment in which the
     translation is being resolved.
 
     Example::
 
-      settings-menu = { OS() ->
+      settings-menu = { PLATFORM() ->
         [mac] Preferences
        *[other] Settings
       }
 
       downloads =
-        [html/accesskey] { OS -> 
+        [html/accesskey] { PLATFORM() ->
           [win] J
           [lin] U
          *[other] Y
