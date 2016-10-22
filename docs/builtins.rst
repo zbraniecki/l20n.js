@@ -31,8 +31,9 @@ Function parameters
 ===================
 
 Functions may (but don't have to) accept positional and keyword arguments.
-Some parameters are only available to developers passing the Function as
-an argument.
+Some keyword parameters are only available to developers and cannot be used
+inside of FTL translations. Instead they can be set on external arguments
+passed into translations by the developer.
 See the reference below for more information about the arguments accepted for
 each built-in function.
 
@@ -60,7 +61,7 @@ environment.
       ''minimumSignificantDigits''
       ''maximumSignificantDigits''
 
-    Devloper parameters::
+    Developer parameters::
 
       ''style''
       ''currency''
@@ -88,7 +89,7 @@ environment.
       ''second''
       ''timeZoneName''
 
-    Devloper parameters::
+    Developer parameters::
 
       ''timeZone''
 
@@ -112,7 +113,7 @@ environment.
       ''minimumSignificantDigits''
       ''maximumSignificantDigits''
 
-    Devloper parameters::
+    Developer parameters::
 
       ''type''
 
@@ -120,7 +121,6 @@ environment.
 
 ``LIST``
     Formats a list to a string in a given locale.
-    Accepts the same parameters as `Intl.ListFormat`_ API.
 
     Example::
 
@@ -132,7 +132,7 @@ environment.
 
       ''style''
 
-    Devloper parameters::
+    Developer parameters::
 
       ''type''
 
@@ -147,16 +147,24 @@ environment.
       unread-emails = Number of unread emails: { LEN($emails) }
 
 ``TAKE``
-    Returns a slice of a list.
+    Returns a slice of a list starting from the first element.
     Similar to JS `Array.prototype.slice`_ API.
+
+    Function accepts a single positional parameter which must be a number which
+    defines the number of elements that will be returned from the array.
 
     Example::
 
-      first-user = Primarely, { TAKE($users, 1) } likesd your message.
+      first-user = Primarely, { TAKE($users, 1) } likes your message.
+
+
 
 ``DROP``
     Returns a slice of the list starting from a given index.
     Similar to JS `Array.prototype.slice`_ API.
+
+    Function accepts a single positional parameter which must be a number which
+    defines the parameter from which the returned slice begins.
 
     Example::
 
