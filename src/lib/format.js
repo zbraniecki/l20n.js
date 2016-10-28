@@ -138,7 +138,9 @@ export function entityFromContext(ctx, errors, id, args) {
     for (let i = 0, trait; (trait = entity.traits[i]); i++) {
       const attr = ctx.format(trait, args, errors);
       if (attr !== null) {
-        formatted.attrs[trait.key.name] = attr;
+        let key =
+          trait.key.ns ? `${trait.key.ns}/${trait.key.name}` : trait.key.name;
+        formatted.attrs[key] = attr;
       }
     }
   }
