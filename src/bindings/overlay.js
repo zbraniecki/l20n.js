@@ -73,8 +73,8 @@ export default function overlayElement(element, translation) {
   }
 
   for (const [ns, name, value] of translation.attrs) {
-    if (ns !== undefined &&
-        isAttrAllowed(DOM_NAMESPACES[ns], { name }, element)) {
+    if (DOM_NAMESPACES[ns] === element.namespaceURI &&
+        isAttrAllowed({ name }, element)) {
       element.setAttribute(name, value);
     }
   }
@@ -140,7 +140,7 @@ function overlay(sourceElement, translationElement) {
   // cleared if a new language doesn't use them; https://bugzil.la/922577
   if (translationElement.attributes) {
     for (k = 0, attr; (attr = translationElement.attributes[k]); k++) {
-      if (isAttrAllowed(sourceElement.namespaceURI, attr, sourceElement)) {
+      if (isAttrAllowed(attr, sourceElement)) {
         sourceElement.setAttribute(attr.name, attr.value);
       }
     }
@@ -178,11 +178,7 @@ function isElementAllowed(element) {
  * @returns {boolean}
  * @private
  */
-function isAttrAllowed(ns, attr, element) {
-  // Does it have a namespace that matches the element's?
-  if (ns !== element.namespaceURI) {
-    return false;
-  }
+function isAttrAllowed(attr, element) {
   const allowed = ALLOWED_ATTRIBUTES[element.namespaceURI];
   if (!allowed) {
     return false;
