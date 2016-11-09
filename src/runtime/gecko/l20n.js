@@ -13,17 +13,17 @@ Components.utils.import('resource://gre/modules/IntlMessageContext.jsm');
 //
 // Example use (in FTL):
 //
-// open-settings = {OS() ->
+// open-settings = { PLATFORM() ->
 //   [mac] Open Preferences
 //  *[other] Open Settings
 // }
 const functions = {
-  OS: function() {
+  PLATFORM: function() {
     switch (Services.appinfo.OS) {
       case 'WINNT':
-        return 'win';
+        return 'windows';
       case 'Linux':
-        return 'lin';
+        return 'linux';
       case 'Darwin':
         return 'mac';
       case 'Android':
