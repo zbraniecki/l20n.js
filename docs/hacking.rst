@@ -115,7 +115,7 @@ Example::
   // Create the MessageContext instance with a custom PLATFORM function.
   const mc = new MessageContext('en-US', {
     functions: {
-      'PLATFORM': function() {
+      PLATFORM: function() {
         return process.platform;
       }
     }

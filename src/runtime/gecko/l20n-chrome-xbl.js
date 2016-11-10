@@ -15,7 +15,7 @@ const functions = {
       case 'Linux':
         return 'linux';
       case 'Darwin':
-        return 'mac';
+        return 'macos';
       case 'Android':
         return 'android';
       default:
