@@ -343,7 +343,7 @@ export default class LocalizationObserver {
     }
 
     const keys = elements.map(this.getKeysForElement);
-    return l10n.formatEntities(keys).then(
+    return l10n.formatEntities(keys, elements).then(
       translations => this.applyTranslations(elements, translations)
     );
   }
